@@ -2,8 +2,6 @@ const { createClient } = require('@supabase/supabase-js');
 const Anthropic = require('@anthropic-ai/sdk');
 const { Resend } = require('resend');
 
-const RATE_LIMIT_MINUTES = 10;
-
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -15,10 +13,10 @@ module.exports = async (req, res) => {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    // Get user with settings (for now, just get the first one - TODO: add auth)
+    // Get user (for now, just get the first one - TODO: add auth)
     const { data: users, error: userError } = await supabase
       .from('users')
-      .select('*, github_connections(*), settings(*)')
+      .select('*, github_connections(*)')
       .limit(1);
 
     if (userError || !users?.length) {
@@ -26,22 +24,6 @@ module.exports = async (req, res) => {
     }
 
     const user = users[0];
-    const settings = Array.isArray(user.settings) ? user.settings[0] : user.settings;
-    
-    // Rate limit check
-    if (settings?.last_test_digest_at) {
-      const lastTest = new Date(settings.last_test_digest_at);
-      const now = new Date();
-      const minutesSinceLastTest = (now - lastTest) / (1000 * 60);
-      
-      if (minutesSinceLastTest < RATE_LIMIT_MINUTES) {
-        const waitMinutes = Math.ceil(RATE_LIMIT_MINUTES - minutesSinceLastTest);
-        return res.status(429).json({ 
-          ok: false, 
-          error: `Rate limited. Try again in ${waitMinutes} minute${waitMinutes > 1 ? 's' : ''}.`
-        });
-      }
-    }
     // github_connections can be an object (one-to-one) or array
     const githubConnection = Array.isArray(user.github_connections) 
       ? user.github_connections[0] 
@@ -74,14 +56,6 @@ module.exports = async (req, res) => {
     if (emailError) {
       return res.status(500).json({ ok: false, error: 'Failed to send email', details: emailError });
     }
-
-    // Update rate limit timestamp
-    await supabase
-      .from('settings')
-      .upsert({ 
-        user_id: user.id, 
-        last_test_digest_at: new Date().toISOString() 
-      }, { onConflict: 'user_id' });
 
     res.json({ 
       ok: true, 
