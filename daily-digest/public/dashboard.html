@@ -245,6 +245,17 @@
       window.location.href = '/daily-digest/api/auth/github';
     }
 
+    // Check if GitHub was just connected
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('github') === 'connected') {
+      document.getElementById('github-status').innerHTML = `
+        <div class="connected">
+          <span style="color: #22c55e;">✓</span>
+          <span>GitHub connected successfully!</span>
+        </div>
+      `;
+    }
+
     function addFeed() {
       const input = document.getElementById('new-feed');
       const url = input.value.trim();
