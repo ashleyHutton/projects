@@ -1,18 +1,5 @@
-const { createClient } = require('@supabase/supabase-js');
-
-// Initialize Supabase client directly
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
-
 // GitHub OAuth - Step 2: Handle callback
 module.exports = async (req, res) => {
-  // Debug: Check env vars
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
-    console.error('Missing Supabase env vars');
-    return res.redirect('/daily-digest/dashboard?error=config_error');
-  }
   const { code } = req.query;
 
   if (!code) {
@@ -20,6 +7,11 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // Check env vars first
+    if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
+      return res.redirect('/daily-digest/dashboard?error=missing_github_env');
+    }
+
     // Exchange code for access token
     const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
@@ -38,7 +30,7 @@ module.exports = async (req, res) => {
 
     if (tokenData.error) {
       console.error('GitHub OAuth error:', tokenData);
-      return res.redirect('/daily-digest/dashboard?error=oauth_failed');
+      return res.redirect('/daily-digest/dashboard?error=oauth_failed&reason=' + tokenData.error);
     }
 
     // Get user info from GitHub
@@ -51,6 +43,16 @@ module.exports = async (req, res) => {
 
     const githubUser = await userRes.json();
 
+    // Check Supabase env vars
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+      // No database configured, just show success
+      return res.redirect('/daily-digest/dashboard?github=connected&user=' + githubUser.login);
+    }
+
+    // Try to save to database
+    const { createClient } = require('@supabase/supabase-js');
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
     // Get user's email from GitHub
     const emailRes = await fetch('https://api.github.com/user/emails', {
       headers: {
@@ -59,17 +61,20 @@ module.exports = async (req, res) => {
       },
     });
     const emails = await emailRes.json();
-    const primaryEmail = emails.find(e => e.primary)?.email || emails[0]?.email;
+    const primaryEmail = Array.isArray(emails) ? (emails.find(e => e.primary)?.email || emails[0]?.email) : null;
+
+    if (!primaryEmail) {
+      return res.redirect('/daily-digest/dashboard?github=connected&user=' + githubUser.login + '&note=no_email');
+    }
 
     // Create or get user in our database
-    let { data: user, error: userError } = await supabase
+    let { data: user } = await supabase
       .from('users')
       .select('*')
       .eq('email', primaryEmail)
       .single();
 
     if (!user) {
-      // Create new user
       const { data: newUser, error: createError } = await supabase
         .from('users')
         .insert({ email: primaryEmail })
@@ -78,7 +83,7 @@ module.exports = async (req, res) => {
       
       if (createError) {
         console.error('Error creating user:', createError);
-        return res.redirect('/daily-digest/dashboard?error=db_error');
+        return res.redirect('/daily-digest/dashboard?github=connected&user=' + githubUser.login + '&db_error=create');
       }
       user = newUser;
     }
@@ -94,23 +99,13 @@ module.exports = async (req, res) => {
 
     if (ghError) {
       console.error('Error saving GitHub connection:', ghError);
-      return res.redirect('/daily-digest/dashboard?error=db_error');
+      return res.redirect('/daily-digest/dashboard?github=connected&user=' + githubUser.login + '&db_error=github');
     }
 
-    // Create default settings if they don't exist
-    await supabase
-      .from('settings')
-      .upsert({
-        user_id: user.id,
-      }, { onConflict: 'user_id' });
-
-    console.log('GitHub connected for:', githubUser.login);
-
-    // Redirect back to dashboard with success
-    // In production, you'd set a session cookie here
-    res.redirect(`/daily-digest/dashboard?github=connected&user=${user.id}`);
+    // Success!
+    res.redirect('/daily-digest/dashboard?github=connected&user=' + user.id);
   } catch (err) {
     console.error('GitHub callback error:', err);
-    res.redirect('/daily-digest/dashboard?error=callback_failed');
+    res.redirect('/daily-digest/dashboard?error=callback_failed&msg=' + encodeURIComponent(err.message));
   }
 };
