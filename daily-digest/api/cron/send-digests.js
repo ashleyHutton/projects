@@ -1,104 +1,159 @@
+const { createClient } = require('@supabase/supabase-js');
 const Anthropic = require('@anthropic-ai/sdk');
 const { Resend } = require('resend');
-const Parser = require('rss-parser');
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const resend = new Resend(process.env.RESEND_API_KEY);
-const parser = new Parser();
 
 module.exports = async (req, res) => {
   // Verify cron secret (Vercel sends this header)
-  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  const authHeader = req.headers.authorization;
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    // Allow manual triggers for testing without auth
+    if (req.query.test !== 'true') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
   }
 
   try {
-    // TODO: Fetch all users from database who should receive digest now
-    const users = await getActiveUsers();
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
-    for (const user of users) {
-      await sendDigestToUser(user);
+    // Get current hour in different timezones
+    const now = new Date();
+    const results = { sent: 0, skipped: 0, errors: [] };
+
+    // Get all users with their settings and connections
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*, github_connections(*), feeds(*), settings(*)');
+
+    if (error) {
+      return res.status(500).json({ ok: false, error: error.message });
     }
 
-    res.json({ ok: true, sent: users.length });
+    for (const user of users || []) {
+      try {
+        const settings = Array.isArray(user.settings) ? user.settings[0] : user.settings;
+        const githubConnection = Array.isArray(user.github_connections) 
+          ? user.github_connections[0] 
+          : user.github_connections;
+        const feeds = Array.isArray(user.feeds) ? user.feeds : (user.feeds ? [user.feeds] : []);
+
+        // Check if it's time to send for this user
+        const userTimezone = settings?.timezone || 'America/Chicago';
+        const deliveryHour = settings?.delivery_hour || 7;
+        
+        const userTime = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }));
+        const currentHour = userTime.getHours();
+
+        // Only send if it's the right hour (cron runs hourly at :00)
+        if (currentHour !== deliveryHour) {
+          results.skipped++;
+          continue;
+        }
+
+        // Skip if no GitHub connection
+        if (!githubConnection) {
+          results.skipped++;
+          continue;
+        }
+
+        // Fetch GitHub activity
+        const githubActivity = await fetchGitHubActivity(
+          githubConnection.access_token, 
+          githubConnection.github_username
+        );
+
+        // Fetch RSS feeds
+        const rssContent = await fetchRSSFeeds(feeds);
+
+        // Generate AI summary
+        const summary = await generateSummary(anthropic, githubActivity, rssContent);
+
+        // Send email
+        const today = new Date().toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric',
+        });
+
+        await resend.emails.send({
+          from: 'Daily Digest <onboarding@resend.dev>',
+          to: user.email,
+          subject: `📬 Your Daily Digest — ${today}`,
+          html: buildEmailHtml(summary, today),
+        });
+
+        results.sent++;
+
+      } catch (userError) {
+        results.errors.push({ userId: user.id, error: userError.message });
+      }
+    }
+
+    res.json({ ok: true, ...results });
+
   } catch (err) {
     console.error('Cron error:', err);
-    res.status(500).json({ error: 'Failed to send digests' });
+    res.status(500).json({ ok: false, error: err.message });
   }
 };
 
-async function getActiveUsers() {
-  // TODO: Query database for users with active subscriptions
-  // For now, return empty array
-  return [];
-}
-
-async function sendDigestToUser(user) {
-  // 1. Fetch GitHub activity
-  const githubData = await fetchGitHubActivity(user.githubToken);
-
-  // 2. Fetch RSS feeds
-  const rssData = await fetchRSSFeeds(user.feeds);
-
-  // 3. Generate AI summary
-  const summary = await generateSummary(githubData, rssData);
-
-  // 4. Send email
-  await sendEmail(user.email, summary);
-}
-
-async function fetchGitHubActivity(token) {
-  if (!token) return null;
-
+async function fetchGitHubActivity(token, username) {
   try {
-    const res = await fetch('https://api.github.com/users/me/events?per_page=50', {
+    const eventsRes = await fetch(`https://api.github.com/users/${username}/events?per_page=30`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/vnd.github.v3+json',
       },
     });
-    return await res.json();
+    const events = await eventsRes.json();
+
+    return {
+      events: Array.isArray(events) ? events.slice(0, 20) : [],
+      username,
+    };
   } catch (err) {
-    console.error('GitHub fetch error:', err);
-    return null;
+    return { events: [], username, error: err.message };
   }
 }
 
 async function fetchRSSFeeds(feeds) {
-  if (!feeds || feeds.length === 0) return [];
-
+  const Parser = require('rss-parser');
+  const parser = new Parser();
   const results = [];
-  for (const feedUrl of feeds) {
+
+  for (const feed of feeds.slice(0, 5)) { // Limit to 5 feeds
     try {
-      const feed = await parser.parseURL(feedUrl);
-      // Get last 10 items from past 24 hours
-      const yesterday = Date.now() - 24 * 60 * 60 * 1000;
-      const recentItems = feed.items
-        .filter(item => new Date(item.pubDate) > yesterday)
-        .slice(0, 10);
-      results.push({ source: feed.title, items: recentItems });
+      const parsed = await parser.parseURL(feed.url);
+      const recentItems = parsed.items.slice(0, 5).map(item => ({
+        title: item.title,
+        link: item.link,
+        date: item.pubDate,
+      }));
+      results.push({ source: parsed.title || feed.url, items: recentItems });
     } catch (err) {
-      console.error(`RSS fetch error for ${feedUrl}:`, err);
+      // Skip failed feeds
     }
   }
+
   return results;
 }
 
-async function generateSummary(githubData, rssData) {
-  const prompt = `You are creating a morning digest email. Summarize the following activity into a brief, scannable email format.
+async function generateSummary(anthropic, githubData, rssContent) {
+  const prompt = `Create a morning digest email summarizing this activity. Be concise and friendly.
 
-GitHub Activity:
-${JSON.stringify(githubData, null, 2)}
+GitHub Activity for ${githubData.username}:
+${JSON.stringify(githubData.events.slice(0, 10).map(e => ({ type: e.type, repo: e.repo?.name })), null, 2)}
 
 RSS Feed Updates:
-${JSON.stringify(rssData, null, 2)}
+${JSON.stringify(rssContent, null, 2)}
 
-Format the response as HTML email content with sections for:
-1. 🐙 GitHub Highlights (3-5 bullet points)
-2. 📰 From Your Feeds (3-5 interesting items)
-3. 💡 TL;DR (2-3 sentence summary)
+Format with HTML sections:
+1. <h2>🐙 GitHub Highlights</h2> - 3-5 bullet points
+2. <h2>📰 From Your Feeds</h2> - Top stories (skip if no feeds)
+3. <h2>💡 TL;DR</h2> - 1-2 sentence summary
 
-Keep it concise and scannable. Use <strong> for emphasis.`;
+Use <ul><li> for lists. Keep it scannable.`;
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
@@ -109,39 +164,31 @@ Keep it concise and scannable. Use <strong> for emphasis.`;
   return response.content[0].text;
 }
 
-async function sendEmail(to, htmlContent) {
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-  });
-
-  await resend.emails.send({
-    from: 'Daily Digest <digest@yourdomain.com>',
-    to,
-    subject: `📬 Your Daily Digest — ${today}`,
-    html: `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: -apple-system, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-            h1 { color: #6366f1; }
-            h2 { color: #666; font-size: 1.1rem; margin-top: 1.5rem; }
-            ul { padding-left: 1.5rem; }
-            li { margin-bottom: 0.5rem; }
-            .footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; }
-          </style>
-        </head>
-        <body>
-          <h1>📬 Daily Digest</h1>
-          ${htmlContent}
-          <div class="footer">
-            <p>You're receiving this because you subscribed to Daily Digest.</p>
-            <p><a href="${process.env.APP_URL}/dashboard">Manage preferences</a> | <a href="${process.env.APP_URL}/api/unsubscribe">Unsubscribe</a></p>
-          </div>
-        </body>
-      </html>
-    `,
-  });
+function buildEmailHtml(summary, date) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    .container { background: white; padding: 30px; border-radius: 10px; }
+    h1 { color: #6366f1; margin-bottom: 5px; }
+    h2 { color: #444; font-size: 1.1rem; margin-top: 25px; }
+    .date { color: #888; margin-bottom: 20px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #888; font-size: 0.85rem; }
+    a { color: #6366f1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📬 Daily Digest</h1>
+    <p class="date">${date}</p>
+    ${summary}
+    <div class="footer">
+      <p><a href="https://projects.ashleyweinaug.com/daily-digest/dashboard">Manage preferences</a></p>
+    </div>
+  </div>
+</body>
+</html>`;
 }
