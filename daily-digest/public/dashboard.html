@@ -165,8 +165,8 @@
   <nav class="nav">
     <a href="/" class="nav-brand" style="text-decoration: none; color: inherit;">📬 Daily Digest</a>
     <div class="nav-links">
-      <a href="/api/stripe/portal" class="btn btn-secondary">Manage Billing</a>
-      <a href="/api/auth/logout" class="btn btn-secondary">Logout</a>
+      <a href="/daily-digest/api/stripe/portal" class="btn btn-secondary">Manage Billing</a>
+      <a href="/daily-digest/api/auth/logout" class="btn btn-secondary">Logout</a>
     </div>
   </nav>
 
@@ -242,7 +242,7 @@
 
   <script>
     function connectGitHub() {
-      window.location.href = '/api/auth/github';
+      window.location.href = '/daily-digest/api/auth/github';
     }
 
     function addFeed() {
@@ -261,7 +261,7 @@
 
     async function sendTestDigest() {
       try {
-        const res = await fetch('/api/digest/test', { method: 'POST' });
+        const res = await fetch('/daily-digest/api/digest/test', { method: 'POST' });
         const data = await res.json();
         if (data.ok) {
           alert('Test digest sent! Check your email.');
