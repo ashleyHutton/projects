@@ -12,17 +12,6 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Debug: check env vars
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return res.status(500).json({ error: 'Missing STRIPE_SECRET_KEY' });
-  }
-  if (!process.env.STRIPE_PRICE_MONTHLY || !process.env.STRIPE_PRICE_YEARLY) {
-    return res.status(500).json({ error: 'Missing price IDs', monthly: !!process.env.STRIPE_PRICE_MONTHLY, yearly: !!process.env.STRIPE_PRICE_YEARLY });
-  }
-  if (!process.env.APP_URL) {
-    return res.status(500).json({ error: 'Missing APP_URL' });
-  }
-
   try {
     const { plan } = req.body;
 
@@ -49,14 +38,6 @@ module.exports = async (req, res) => {
     res.json({ url: session.url });
   } catch (err) {
     console.error('Stripe checkout error:', err);
-    res.status(500).json({ 
-      error: 'Failed to create checkout session', 
-      details: err.message,
-      debug: {
-        appUrl: process.env.APP_URL,
-        successUrl: `${process.env.APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-        priceId: PRICES[req.body?.plan]
-      }
-    });
+    res.status(500).json({ error: 'Failed to create checkout session' });
   }
 };
