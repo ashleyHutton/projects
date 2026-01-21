@@ -3,7 +3,7 @@ module.exports = async (req, res) => {
   const { code } = req.query;
 
   if (!code) {
-    return res.redirect('/dashboard?error=no_code');
+    return res.redirect('/daily-digest/dashboard?error=no_code');
   }
 
   try {
@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
 
     if (tokenData.error) {
       console.error('GitHub OAuth error:', tokenData);
-      return res.redirect('/dashboard?error=oauth_failed');
+      return res.redirect('/daily-digest/dashboard?error=oauth_failed');
     }
 
     // Get user info
@@ -43,9 +43,9 @@ module.exports = async (req, res) => {
 
     // For now, just redirect back to dashboard
     // In production, set a session cookie
-    res.redirect('/dashboard?github=connected');
+    res.redirect('/daily-digest/dashboard?github=connected');
   } catch (err) {
     console.error('GitHub callback error:', err);
-    res.redirect('/dashboard?error=callback_failed');
+    res.redirect('/daily-digest/dashboard?error=callback_failed');
   }
 };
