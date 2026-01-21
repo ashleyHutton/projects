@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎰 Project Roulette</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+    }
+
+    .subtitle {
+      color: #888;
+      margin-bottom: 2rem;
+    }
+
+    .roulette-container {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 40px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    .category-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 1rem;
+    }
+
+    .category-utility { background: #00b894; }
+    .category-fun { background: #e84393; }
+    .category-api { background: #0984e3; }
+    .category-tool { background: #fdcb6e; color: #333; }
+    .category-game { background: #6c5ce7; }
+
+    .idea-display {
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .idea-name {
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .idea-description {
+      color: #aaa;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .spin-btn {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+      border: none;
+      color: white;
+      padding: 16px 48px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .spin-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 30px rgba(238, 90, 36, 0.4);
+    }
+
+    .spin-btn:active {
+      transform: scale(0.98);
+    }
+
+    .spin-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .spinning .idea-name {
+      animation: shuffle 0.1s infinite;
+    }
+
+    @keyframes shuffle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .history {
+      margin-top: 2rem;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .history h3 {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .history-item {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 6px 12px;
+      border-radius: 15px;
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+
+    .emoji {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .spinning .emoji {
+      animation: spin 0.5s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎰 Project Roulette</h1>
+  <p class="subtitle">Spin for your next micro-project idea!</p>
+
+  <div class="roulette-container" id="roulette">
+    <div class="emoji" id="emoji">🎲</div>
+    <div class="idea-display">
+      <span class="category-badge category-fun" id="category">Ready</span>
+      <div class="idea-name" id="idea-name">Click spin to get started!</div>
+      <div class="idea-description" id="idea-desc">Your next vibe-coded project awaits...</div>
+    </div>
+    <button class="spin-btn" id="spin-btn" onclick="spin()">🎰 Spin!</button>
+  </div>
+
+  <div class="history" id="history-container" style="display: none;">
+    <h3>Previous Spins</h3>
+    <div class="history-list" id="history-list"></div>
+  </div>
+
+  <script>
+    const projects = [
+      { category: 'utility', emoji: '🔧', name: 'Bookmark Dump', desc: 'Paste URLs, get a pretty organized HTML page' },
+      { category: 'utility', emoji: '📋', name: 'JSON Prettifier', desc: 'Drag-drop JSON, get syntax-highlighted output' },
+      { category: 'utility', emoji: '🎨', name: 'Color Extractor', desc: 'Upload image, extract dominant colors as CSS vars' },
+      { category: 'utility', emoji: '📝', name: 'Markdown Previewer', desc: 'Live markdown editor with instant preview' },
+      { category: 'utility', emoji: '🔗', name: 'Link Shortener', desc: 'Simple URL shortener with copy-to-clipboard' },
+      { category: 'fun', emoji: '🥠', name: 'Fortune Cookie API', desc: 'Returns random fortunes, deployable anywhere' },
+      { category: 'fun', emoji: '🙈', name: 'Excuse Generator', desc: 'Generate excuses: professional, chaotic, or cryptid' },
+      { category: 'fun', emoji: '💬', name: 'Compliment Bot', desc: 'Hit an endpoint, get a weird compliment' },
+      { category: 'fun', emoji: '🎵', name: 'Playlist Namer', desc: 'Describe a vibe, get creative playlist names' },
+      { category: 'fun', emoji: '🌈', name: 'Mood Ring', desc: 'Click to cycle through moods with colors & music recs' },
+      { category: 'api', emoji: '📊', name: 'Repo Dashboard', desc: 'Shows your GitHub repos with stats at a glance' },
+      { category: 'api', emoji: '☀️', name: 'Weather Widget', desc: 'Minimal weather display for your location' },
+      { category: 'api', emoji: '📰', name: 'HN Top 5', desc: 'Shows top 5 Hacker News stories, refreshes hourly' },
+      { category: 'api', emoji: '🚀', name: 'SpaceX Tracker', desc: 'Next launch countdown with mission details' },
+      { category: 'api', emoji: '📸', name: 'Random Dog', desc: 'Button that fetches a random dog photo' },
+      { category: 'tool', emoji: '⏱️', name: 'Pomodoro Timer', desc: 'Simple 25/5 timer with sound notifications' },
+      { category: 'tool', emoji: '📄', name: 'Invoice Generator', desc: 'Fill in fields, print to PDF invoice' },
+      { category: 'tool', emoji: '🗓️', name: 'Standup Formatter', desc: 'Paste bullets, get formatted standup message' },
+      { category: 'tool', emoji: '🔐', name: 'Password Generator', desc: 'Generate secure passwords with options' },
+      { category: 'tool', emoji: '📏', name: 'Unit Converter', desc: 'Quick conversions: px/rem, c/f, kg/lb, etc.' },
+      { category: 'game', emoji: '🎯', name: 'Click Speed Test', desc: 'How many clicks in 10 seconds?' },
+      { category: 'game', emoji: '🧠', name: 'Memory Cards', desc: 'Classic flip-and-match memory game' },
+      { category: 'game', emoji: '⌨️', name: 'Typing Racer', desc: 'Test your typing speed with random quotes' },
+      { category: 'game', emoji: '🐍', name: 'Snake Game', desc: 'Classic snake in canvas, high score saved' },
+      { category: 'game', emoji: '🎨', name: 'Pixel Art Editor', desc: 'Tiny grid-based drawing tool with export' },
+    ];
+
+    const history = [];
+    let isSpinning = false;
+
+    function spin() {
+      if (isSpinning) return;
+      isSpinning = true;
+
+      const btn = document.getElementById('spin-btn');
+      const container = document.getElementById('roulette');
+      const nameEl = document.getElementById('idea-name');
+      const descEl = document.getElementById('idea-desc');
+      const catEl = document.getElementById('category');
+      const emojiEl = document.getElementById('emoji');
+
+      btn.disabled = true;
+      container.classList.add('spinning');
+
+      let shuffleCount = 0;
+      const maxShuffles = 20;
+      const shuffleInterval = setInterval(() => {
+        const randomProject = projects[Math.floor(Math.random() * projects.length)];
+        nameEl.textContent = randomProject.name;
+        emojiEl.textContent = randomProject.emoji;
+        shuffleCount++;
+
+        if (shuffleCount >= maxShuffles) {
+          clearInterval(shuffleInterval);
+          
+          // Final selection
+          const finalProject = projects[Math.floor(Math.random() * projects.length)];
+          nameEl.textContent = finalProject.name;
+          descEl.textContent = finalProject.desc;
+          emojiEl.textContent = finalProject.emoji;
+          catEl.textContent = finalProject.category;
+          catEl.className = `category-badge category-${finalProject.category}`;
+
+          container.classList.remove('spinning');
+          btn.disabled = false;
+          isSpinning = false;
+
+          // Add to history
+          if (!history.includes(finalProject.name)) {
+            history.unshift(finalProject.name);
+            if (history.length > 5) history.pop();
+            updateHistory();
+          }
+        }
+      }, 100);
+    }
+
+    function updateHistory() {
+      const container = document.getElementById('history-container');
+      const list = document.getElementById('history-list');
+      
+      if (history.length > 0) {
+        container.style.display = 'block';
+        list.innerHTML = history.map(name => `<span class="history-item">${name}</span>`).join('');
+      }
+    }
+  </script>
+</body>
+</html>
