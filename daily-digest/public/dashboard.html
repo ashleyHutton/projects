@@ -248,13 +248,8 @@
     <div class="section">
       <h2>📰 RSS Feeds</h2>
       <div class="feed-list" id="feed-list">
-        <div class="feed-item">
-          <span class="feed-url">https://news.ycombinator.com/rss</span>
-          <button class="remove-btn" onclick="removeFeed(0)">✕</button>
-        </div>
-        <div class="feed-item">
-          <span class="feed-url">https://rubyweekly.com/rss</span>
-          <button class="remove-btn" onclick="removeFeed(1)">✕</button>
+        <div class="feed-item" style="color: var(--text-muted); font-style: italic;">
+          <span>No feeds added yet</span>
         </div>
       </div>
       <div class="add-feed">
@@ -301,15 +296,64 @@
       window.location.href = '/daily-digest/api/auth/github';
     }
 
-    // Check if GitHub was just connected
+    // Load user state on page load
+    async function loadUserState() {
+      try {
+        const res = await fetch('/daily-digest/api/user/state');
+        const data = await res.json();
+        
+        if (!data.ok) return;
+        
+        // Update GitHub section
+        if (data.github?.connected) {
+          document.getElementById('github-status').innerHTML = `
+            <div class="connected">
+              <span style="color: #22c55e;">✓</span>
+              <span>Connected as <strong>${data.github.username}</strong></span>
+            </div>
+          `;
+        }
+        
+        // Update feeds list
+        if (data.feeds?.length > 0) {
+          const feedList = document.getElementById('feed-list');
+          feedList.innerHTML = data.feeds.map((feed, i) => `
+            <div class="feed-item">
+              <span class="feed-url">${feed.url}</span>
+              <button class="remove-btn" onclick="removeFeed('${feed.id}')">✕</button>
+            </div>
+          `).join('');
+        }
+        
+        // Update settings
+        if (data.settings) {
+          document.getElementById('delivery-time').value = data.settings.deliveryHour;
+          document.getElementById('timezone').value = data.settings.timezone;
+          document.getElementById('summary-length').value = data.settings.summaryLength;
+        }
+        
+        // Show user email in status bar
+        if (data.user?.email) {
+          const statusText = document.querySelector('.status-text span:last-child');
+          if (statusText) {
+            statusText.textContent = `Digest for ${data.user.email} · Tomorrow at ${data.settings?.deliveryHour || 7}:00 AM`;
+          }
+        }
+        
+      } catch (err) {
+        console.error('Failed to load user state:', err);
+      }
+    }
+    
+    // Load state on page load
+    loadUserState();
+    
+    // Also check URL params for just-connected state
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('github') === 'connected') {
-      document.getElementById('github-status').innerHTML = `
-        <div class="connected">
-          <span style="color: #22c55e;">✓</span>
-          <span>GitHub connected successfully!</span>
-        </div>
-      `;
+      showToast('GitHub connected successfully!', 'success');
+      // Reload state to show the connection
+      loadUserState();
     }
 
     function addFeed() {
