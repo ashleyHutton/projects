@@ -1,7 +1,18 @@
-const { supabase } = require('../../../lib/supabase');
+const { createClient } = require('@supabase/supabase-js');
+
+// Initialize Supabase client directly
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
 // GitHub OAuth - Step 2: Handle callback
 module.exports = async (req, res) => {
+  // Debug: Check env vars
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+    console.error('Missing Supabase env vars');
+    return res.redirect('/daily-digest/dashboard?error=config_error');
+  }
   const { code } = req.query;
 
   if (!code) {
