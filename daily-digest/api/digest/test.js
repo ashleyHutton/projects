@@ -24,10 +24,13 @@ module.exports = async (req, res) => {
     }
 
     const user = users[0];
-    const githubConnection = user.github_connections?.[0];
+    // github_connections can be an object (one-to-one) or array
+    const githubConnection = Array.isArray(user.github_connections) 
+      ? user.github_connections[0] 
+      : user.github_connections;
 
     if (!githubConnection) {
-      return res.status(400).json({ ok: false, error: 'No GitHub connection found' });
+      return res.status(400).json({ ok: false, error: 'No GitHub connection found', user: { id: user.id, email: user.email } });
     }
 
     // Fetch GitHub activity
