@@ -46,7 +46,7 @@ module.exports = async (req, res) => {
     // Check Supabase env vars
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
       // No database configured, just show success
-      return res.redirect('/daily-digest/dashboard?github=connected&user=' + githubUser.login);
+      return res.redirect('/daily-digest/dashboard?github=connected&user=' + githubUser.login + '&reason=no_supabase_env');
     }
 
     // Try to save to database
@@ -64,7 +64,7 @@ module.exports = async (req, res) => {
     const primaryEmail = Array.isArray(emails) ? (emails.find(e => e.primary)?.email || emails[0]?.email) : null;
 
     if (!primaryEmail) {
-      return res.redirect('/daily-digest/dashboard?github=connected&user=' + githubUser.login + '&note=no_email');
+      return res.redirect('/daily-digest/dashboard?github=connected&user=' + githubUser.login + '&note=no_email&emails_response=' + encodeURIComponent(JSON.stringify(emails).substring(0, 100)));
     }
 
     // Create or get user in our database
@@ -103,7 +103,7 @@ module.exports = async (req, res) => {
     }
 
     // Success!
-    res.redirect('/daily-digest/dashboard?github=connected&user=' + user.id);
+    res.redirect('/daily-digest/dashboard?github=connected&user=' + user.id + '&db=success&email=' + encodeURIComponent(primaryEmail));
   } catch (err) {
     console.error('GitHub callback error:', err);
     res.redirect('/daily-digest/dashboard?error=callback_failed&msg=' + encodeURIComponent(err.message));
