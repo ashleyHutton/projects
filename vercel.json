@@ -36,7 +36,7 @@
     },
     {
       "src": "/daily-digest/api/(.*)",
-      "dest": "/daily-digest/api/$1"
+      "dest": "/daily-digest/api/$1.js"
     },
     {
       "src": "/daily-digest/dashboard",
