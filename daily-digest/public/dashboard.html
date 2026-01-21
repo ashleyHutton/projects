@@ -356,19 +356,78 @@
       loadUserState();
     }
 
-    function addFeed() {
+    async function addFeed() {
       const input = document.getElementById('new-feed');
       const url = input.value.trim();
       if (!url) return;
-      // TODO: API call to add feed
-      console.log('Adding feed:', url);
-      input.value = '';
+      
+      try {
+        const res = await fetch('/daily-digest/api/feeds/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const data = await res.json();
+        
+        if (data.ok) {
+          showToast('Feed added!', 'success');
+          input.value = '';
+          loadUserState(); // Refresh the list
+        } else {
+          showToast(data.error || 'Failed to add feed', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to add feed', 'error');
+      }
     }
 
-    function removeFeed(index) {
-      // TODO: API call to remove feed
-      console.log('Removing feed:', index);
+    async function removeFeed(id) {
+      try {
+        const res = await fetch('/daily-digest/api/feeds/remove', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+        const data = await res.json();
+        
+        if (data.ok) {
+          showToast('Feed removed', 'success');
+          loadUserState(); // Refresh the list
+        } else {
+          showToast(data.error || 'Failed to remove feed', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to remove feed', 'error');
+      }
     }
+    
+    async function saveSettings() {
+      const deliveryHour = parseInt(document.getElementById('delivery-time').value);
+      const timezone = document.getElementById('timezone').value;
+      const summaryLength = document.getElementById('summary-length').value;
+      
+      try {
+        const res = await fetch('/daily-digest/api/settings/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deliveryHour, timezone, summaryLength }),
+        });
+        const data = await res.json();
+        
+        if (data.ok) {
+          showToast('Settings saved!', 'success');
+        } else {
+          showToast(data.error || 'Failed to save settings', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to save settings', 'error');
+      }
+    }
+    
+    // Auto-save settings when changed
+    document.getElementById('delivery-time')?.addEventListener('change', saveSettings);
+    document.getElementById('timezone')?.addEventListener('change', saveSettings);
+    document.getElementById('summary-length')?.addEventListener('change', saveSettings);
 
     function showToast(message, type = 'success', duration = 4000) {
       const container = document.getElementById('toast-container');
