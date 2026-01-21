@@ -15,9 +15,17 @@
     {
       "src": "github-agent/client/**",
       "use": "@vercel/static"
+    },
+    {
+      "src": "project-roulette/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/project-roulette/?$",
+      "dest": "/project-roulette/index.html"
+    },
     {
       "src": "/github-agent/api/(.*)",
       "dest": "/github-agent/server/index.js"
