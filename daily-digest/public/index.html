@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Digest — AI-Powered Morning Briefings</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-brand">📬 Daily Digest</div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="/dashboard" class="btn btn-secondary">Login</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <h1>Your morning briefing,<br><span class="gradient-text">powered by AI</span></h1>
+    <p class="hero-sub">Get a personalized daily email summarizing your GitHub activity, RSS feeds, and more. No noise, just signal.</p>
+    <div class="hero-cta">
+      <a href="#pricing" class="btn btn-primary btn-lg">Start Free Trial</a>
+      <span class="hero-note">7 days free • Cancel anytime</span>
+    </div>
+  </header>
+
+  <section id="features" class="features">
+    <h2>Everything you need to stay informed</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🐙</div>
+        <h3>GitHub Activity</h3>
+        <p>PRs, issues, commits across your repos — summarized into key highlights.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📰</div>
+        <h3>RSS Feeds</h3>
+        <p>Add your favorite blogs, news sites, subreddits. We'll catch you up.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>AI Summaries</h3>
+        <p>Claude reads everything and gives you the TL;DR that matters.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📧</div>
+        <h3>Morning Email</h3>
+        <p>Delivered to your inbox at your preferred time. Start the day informed.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sample">
+    <h2>Here's what your digest looks like</h2>
+    <div class="sample-email">
+      <div class="sample-header">
+        <span class="sample-subject">📬 Your Daily Digest — Jan 20</span>
+        <span class="sample-time">7:00 AM</span>
+      </div>
+      <div class="sample-body">
+        <p><strong>🐙 GitHub Highlights</strong></p>
+        <p>• <strong>zone14:</strong> 3 new commits on main, PR #42 merged (auth refactor)<br>
+        • <strong>friends-pfs:</strong> Issue #18 received 2 comments, needs your review<br>
+        • <strong>daily-digest:</strong> You pushed 5 commits yesterday!</p>
+        <p><strong>📰 From Your Feeds</strong></p>
+        <p>• <em>Hacker News:</em> "Show HN: I built a CLI for..." trending with 342 points<br>
+        • <em>Ruby Weekly:</em> Rails 8.1 released with async queries<br>
+        • <em>Changelog:</em> Interview with Matz on Ruby's future</p>
+        <p><strong>💡 TL;DR</strong></p>
+        <p>Active day on zone14 — auth refactor shipped. Check the friends-pfs issue when you get a chance. Ruby ecosystem buzzing about Rails 8.1.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing" class="pricing">
+    <h2>Simple pricing</h2>
+    <div class="pricing-cards">
+      <div class="pricing-card">
+        <div class="pricing-name">Monthly</div>
+        <div class="pricing-price">$5<span>/mo</span></div>
+        <ul class="pricing-features">
+          <li>✓ Unlimited GitHub repos</li>
+          <li>✓ Up to 10 RSS feeds</li>
+          <li>✓ AI-powered summaries</li>
+          <li>✓ Daily email delivery</li>
+          <li>✓ 7-day free trial</li>
+        </ul>
+        <button class="btn btn-primary" onclick="subscribe('monthly')">Start Free Trial</button>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Best Value</div>
+        <div class="pricing-name">Yearly</div>
+        <div class="pricing-price">$49<span>/yr</span></div>
+        <ul class="pricing-features">
+          <li>✓ Everything in Monthly</li>
+          <li>✓ Up to 25 RSS feeds</li>
+          <li>✓ Priority email delivery</li>
+          <li>✓ 2 months free</li>
+          <li>✓ 7-day free trial</li>
+        </ul>
+        <button class="btn btn-primary" onclick="subscribe('yearly')">Start Free Trial</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>Built with 🐉 by Ashley Weinaug</p>
+  </footer>
+
+  <script>
+    async function subscribe(plan) {
+      try {
+        const res = await fetch('/api/stripe/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan })
+        });
+        const { url, error } = await res.json();
+        if (error) {
+          alert(error);
+          return;
+        }
+        window.location.href = url;
+      } catch (err) {
+        alert('Something went wrong. Please try again.');
+      }
+    }
+  </script>
+</body>
+</html>

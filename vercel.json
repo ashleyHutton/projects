@@ -19,12 +19,36 @@
     {
       "src": "project-roulette/**",
       "use": "@vercel/static"
+    },
+    {
+      "src": "daily-digest/public/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "daily-digest/api/**/*.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/project-roulette/?$",
       "dest": "/project-roulette/index.html"
+    },
+    {
+      "src": "/daily-digest/api/(.*)",
+      "dest": "/daily-digest/api/$1"
+    },
+    {
+      "src": "/daily-digest/dashboard",
+      "dest": "/daily-digest/public/dashboard.html"
+    },
+    {
+      "src": "/daily-digest/(.*\\.(css|js|png|ico))",
+      "dest": "/daily-digest/public/$1"
+    },
+    {
+      "src": "/daily-digest/?$",
+      "dest": "/daily-digest/public/index.html"
     },
     {
       "src": "/github-agent/api/(.*)",

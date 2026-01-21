@@ -1,0 +1,15 @@
+{
+  "name": "daily-digest",
+  "version": "1.0.0",
+  "description": "AI-powered daily digest service - GitHub activity, RSS feeds, summarized and emailed",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.52.0",
+    "resend": "^4.0.0",
+    "stripe": "^17.5.0",
+    "rss-parser": "^3.13.0"
+  }
+}
