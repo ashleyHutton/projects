@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Compass</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Settings Panel -->
+    <div id="settings-panel" class="settings-panel">
+      <div class="settings-content">
+        <h2>Settings</h2>
+        <div class="form-group">
+          <label for="api-key">Anthropic API Key</label>
+          <input
+            type="password"
+            id="api-key"
+            placeholder="sk-ant-..."
+            autocomplete="off"
+          >
+          <p class="help-text">Get this from <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+        </div>
+        <div class="form-group">
+          <label for="github-token">GitHub Personal Access Token</label>
+          <input
+            type="password"
+            id="github-token"
+            placeholder="ghp_..."
+            autocomplete="off"
+          >
+          <p class="help-text">Create one at <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> with "repo" scope</p>
+        </div>
+        <div class="form-group">
+          <label for="github-org">GitHub Organization</label>
+          <input
+            type="text"
+            id="github-org"
+            placeholder="brandnewbox"
+            autocomplete="off"
+          >
+          <p class="help-text">The GitHub organization to search within</p>
+        </div>
+        <div class="form-group">
+          <label for="system-prompt">System Prompt</label>
+          <textarea
+            id="system-prompt"
+            rows="8"
+            placeholder="Loading default prompt..."
+          ></textarea>
+          <p class="help-text">Customize how the assistant responds. Leave empty to use the default.</p>
+          <button type="button" id="reset-prompt" class="btn btn-small">Reset to Default</button>
+        </div>
+        <div class="settings-actions">
+          <button id="save-settings" class="btn btn-primary">Save & Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <h1>Code Compass</h1>
+        <p class="subtitle">Navigate your GitHub organization with AI</p>
+      </div>
+      <button id="settings-btn" class="btn btn-icon" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Chat Container -->
+    <main class="chat-container">
+      <div id="messages" class="messages">
+        <div class="message assistant">
+          <div class="message-content">
+            <h2>Welcome to Code Compass</h2>
+            <p>This tool uses AI to help you search and explore any GitHub organization's repositories, issues, pull requests, and code. It's like having a knowledgeable teammate who remembers everything about your codebase.</p>
+
+            <h3>How it works</h3>
+            <p>Ask natural language questions and the assistant will search GitHub for relevant information, then summarize the results for you.</p>
+            <p><strong>Example questions:</strong></p>
+            <ul>
+              <li>"What's the authentication pattern used in this org?"</li>
+              <li>"Show me recent PRs related to performance"</li>
+              <li>"Which repo handles payment processing?"</li>
+              <li>"What issues are open about bug fixes?"</li>
+            </ul>
+
+            <h3>Getting started</h3>
+            <p>Click <strong>Settings</strong> (gear icon) to configure:</p>
+            <ul>
+              <li><strong>Anthropic API Key</strong> - Powers the AI responses</li>
+              <li><strong>GitHub Token</strong> - Allows searching GitHub</li>
+              <li><strong>GitHub Organization</strong> - The org to search (try "basecamp" or any public org!)</li>
+            </ul>
+
+            <h3>Security & Privacy</h3>
+            <p>Your API keys are stored locally in your browser's localStorage and are sent directly to Anthropic and GitHub APIs. They are <strong>never stored on our servers</strong>. Conversations are not saved and will be cleared when you refresh the page.</p>
+
+            <p class="footer-link">Built by <a href="https://ashleyweinaug.com" target="_blank">Ashley Weinaug</a></p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Input Area -->
+    <footer class="input-area">
+      <form id="chat-form" class="chat-form">
+        <input
+          type="text"
+          id="message-input"
+          placeholder="Ask a question about your GitHub team..."
+          autocomplete="off"
+        >
+        <button type="submit" class="btn btn-primary" id="send-btn">
+          <span>Send</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+      <p class="input-hint" id="status-text">Ready</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

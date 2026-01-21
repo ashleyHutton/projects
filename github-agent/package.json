@@ -1,0 +1,26 @@
+{
+  "name": "github-agent",
+  "version": "1.0.0",
+  "description": "A chat interface to query your GitHub team using Claude AI",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "keywords": [
+    "github",
+    "ai",
+    "claude",
+    "chat"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.52.0",
+    "@octokit/rest": "^22.0.1",
+    "express": "^4.21.0"
+  }
+}
