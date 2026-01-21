@@ -1,0 +1,45 @@
+-- Daily Digest Database Schema
+
+-- Users table (linked to Stripe)
+CREATE TABLE users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  stripe_customer_id TEXT UNIQUE,
+  subscription_status TEXT DEFAULT 'trial',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- GitHub connections
+CREATE TABLE github_connections (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  github_username TEXT NOT NULL,
+  access_token TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+-- RSS feeds per user
+CREATE TABLE feeds (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  title TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- User settings
+CREATE TABLE settings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+  delivery_hour INT DEFAULT 7,
+  timezone TEXT DEFAULT 'America/Chicago',
+  summary_length TEXT DEFAULT 'normal',
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_github_connections_user ON github_connections(user_id);
+CREATE INDEX idx_feeds_user ON feeds(user_id);
+CREATE INDEX idx_settings_user ON settings(user_id);
