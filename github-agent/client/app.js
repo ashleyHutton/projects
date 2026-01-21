@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadDefaultSystemPrompt() {
   try {
-    const response = await fetch('/api/system-prompt');
+    const response = await fetch('/github-agent/api/system-prompt');
     const data = await response.json();
     defaultSystemPrompt = data.systemPrompt;
 
@@ -140,7 +140,7 @@ chatForm.addEventListener('submit', async (e) => {
     const systemPrompt = localStorage.getItem('system_prompt') || null;
     const githubOrg = localStorage.getItem('github_org') || 'brandnewbox';
 
-    const response = await fetch('/api/chat', {
+    const response = await fetch('/github-agent/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

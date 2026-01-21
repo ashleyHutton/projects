@@ -14,10 +14,10 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../client')));
 
 // API Routes
-app.use('/api', chatRoutes);
+app.use('/github-agent/api', chatRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/github-agent/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
