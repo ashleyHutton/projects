@@ -18,6 +18,19 @@ module.exports = async (req, res) => {
       process.env.SUPABASE_ANON_KEY
     );
 
+    if (action === 'resend') {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      return res.json({ ok: true, message: 'Confirmation email sent!' });
+    }
+
     if (action === 'signup') {
       if (password.length < 8) {
         return res.status(400).json({ error: 'Password must be at least 8 characters' });

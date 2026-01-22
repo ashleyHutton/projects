@@ -179,6 +179,11 @@
         <span id="toggle-text">Don't have an account?</span>
         <a id="toggle-link" onclick="toggleMode()">Sign up</a>
       </div>
+
+      <div class="auth-toggle" style="margin-top: 0.5rem;">
+        <span>Need a new confirmation email?</span>
+        <a onclick="resendConfirmation()">Resend</a>
+      </div>
     </div>
   </div>
 
@@ -270,6 +275,31 @@
 
     function signInWithGitHub() {
       window.location.href = '/daily-digest/api/auth/github';
+    }
+
+    async function resendConfirmation() {
+      const email = document.getElementById('email').value;
+      if (!email) {
+        showError('Enter your email first');
+        return;
+      }
+
+      try {
+        const res = await fetch('/daily-digest/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'resend', email, password: 'dummy' }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to resend');
+        }
+
+        showSuccess('Confirmation email sent! Check your inbox.');
+      } catch (err) {
+        showError(err.message);
+      }
     }
 
     // Check URL params for errors
