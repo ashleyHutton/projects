@@ -40,7 +40,7 @@ module.exports = async (req, res) => {
         email,
         password,
         options: {
-          emailRedirectTo: `${process.env.APP_URL}/daily-digest/dashboard`,
+          emailRedirectTo: `${process.env.APP_URL}/dashboard`,
         },
       });
 
