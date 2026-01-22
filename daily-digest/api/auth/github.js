@@ -1,10 +1,30 @@
-// GitHub OAuth - Step 1: Redirect to GitHub
+const { createClient } = require('@supabase/supabase-js');
+
+// GitHub OAuth via Supabase - redirects to GitHub
 module.exports = async (req, res) => {
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const redirectUri = `${process.env.APP_URL}/api/auth/github/callback`;
-  const scope = 'read:user user:email repo';
+  try {
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
+    );
 
-  const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: `${process.env.APP_URL}/daily-digest/api/auth/callback`,
+        scopes: 'read:user user:email repo',
+      },
+    });
 
-  res.redirect(authUrl);
+    if (error) {
+      console.error('GitHub OAuth error:', error);
+      return res.redirect('/daily-digest/dashboard?error=oauth_init_failed');
+    }
+
+    res.redirect(data.url);
+    
+  } catch (err) {
+    console.error('GitHub OAuth error:', err);
+    res.redirect('/daily-digest/dashboard?error=oauth_failed');
+  }
 };

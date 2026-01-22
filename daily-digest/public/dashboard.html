@@ -222,7 +222,7 @@
     <a href="/" class="nav-brand" style="text-decoration: none; color: inherit;">📬 Daily Digest</a>
     <div class="nav-links">
       <a href="/daily-digest/api/stripe/portal" class="btn btn-secondary">Manage Billing</a>
-      <a href="/daily-digest/api/auth/logout" class="btn btn-secondary">Logout</a>
+      <a href="#" onclick="logout(); return false;" class="btn btn-secondary">Logout</a>
     </div>
   </nav>
 
@@ -292,14 +292,86 @@
   </div>
 
   <script>
+    // Auth helpers
+    function getSession() {
+      const stored = localStorage.getItem('dd_session');
+      return stored ? JSON.parse(stored) : null;
+    }
+
+    function setSession(session) {
+      localStorage.setItem('dd_session', JSON.stringify(session));
+    }
+
+    function clearSession() {
+      localStorage.removeItem('dd_session');
+    }
+
+    function getAuthHeaders() {
+      const session = getSession();
+      if (!session?.accessToken) return {};
+      return { 'Authorization': `Bearer ${session.accessToken}` };
+    }
+
+    // Check for OAuth callback tokens in URL
+    function handleOAuthCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const expiresAt = params.get('expires_at');
+      
+      if (accessToken) {
+        setSession({ accessToken, refreshToken, expiresAt: parseInt(expiresAt) });
+        // Clean up URL
+        window.history.replaceState({}, '', '/daily-digest/dashboard?login=success');
+        return true;
+      }
+      return false;
+    }
+
+    // Check auth on page load
+    async function checkAuth() {
+      handleOAuthCallback();
+      
+      const session = getSession();
+      if (!session?.accessToken) {
+        window.location.href = '/daily-digest/login';
+        return false;
+      }
+      
+      // Verify session is still valid
+      try {
+        const res = await fetch('/daily-digest/api/auth/me', {
+          headers: getAuthHeaders(),
+        });
+        const data = await res.json();
+        
+        if (!data.authenticated) {
+          clearSession();
+          window.location.href = '/daily-digest/login';
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.error('Auth check failed:', err);
+        return true; // Don't redirect on network errors
+      }
+    }
+
     function connectGitHub() {
       window.location.href = '/daily-digest/api/auth/github';
+    }
+
+    function logout() {
+      clearSession();
+      window.location.href = '/daily-digest/api/auth/logout';
     }
 
     // Load user state on page load
     async function loadUserState() {
       try {
-        const res = await fetch('/daily-digest/api/user/state');
+        const res = await fetch('/daily-digest/api/user/state', {
+          headers: getAuthHeaders(),
+        });
         const data = await res.json();
         
         if (!data.ok) return;
@@ -345,8 +417,10 @@
       }
     }
     
-    // Load state on page load
-    loadUserState();
+    // Load state on page load (after auth check)
+    checkAuth().then(ok => {
+      if (ok) loadUserState();
+    });
     
     // Also check URL params for just-connected state
     const urlParams = new URLSearchParams(window.location.search);
@@ -362,10 +436,10 @@
       if (!url) return;
       
       try {
-        const res = await fetch('/daily-digest/api/feeds/add', {
+        const res = await fetch('/daily-digest/api/feeds', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url }),
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ action: 'add', url }),
         });
         const data = await res.json();
         
@@ -383,10 +457,10 @@
 
     async function removeFeed(id) {
       try {
-        const res = await fetch('/daily-digest/api/feeds/remove', {
+        const res = await fetch('/daily-digest/api/feeds', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id }),
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ action: 'remove', id }),
         });
         const data = await res.json();
         
@@ -409,7 +483,7 @@
       try {
         const res = await fetch('/daily-digest/api/settings/save', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
           body: JSON.stringify({ deliveryHour, timezone, summaryLength }),
         });
         const data = await res.json();
@@ -457,7 +531,10 @@
       const loadingToast = showToast('Generating your digest with AI...', 'loading');
       
       try {
-        const res = await fetch('/daily-digest/api/digest/test', { method: 'POST' });
+        const res = await fetch('/daily-digest/api/digest/test', { 
+          method: 'POST',
+          headers: getAuthHeaders(),
+        });
         const data = await res.json();
         
         loadingToast.remove();

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Daily Digest</title>
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+    .auth-container {
+      max-width: 400px;
+      margin: 4rem auto;
+      padding: 2rem;
+    }
+
+    .auth-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+    }
+
+    .auth-box h1 {
+      font-size: 1.5rem;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .auth-box .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .auth-btn {
+      width: 100%;
+      padding: 0.875rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .auth-btn.primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .auth-btn.primary:hover {
+      opacity: 0.9;
+    }
+
+    .auth-btn.github {
+      background: #24292e;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .auth-btn.github:hover {
+      background: #2f363d;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.5rem 0;
+      color: var(--text-muted);
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .auth-toggle {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: var(--text-muted);
+    }
+
+    .auth-toggle a {
+      color: var(--primary);
+      cursor: pointer;
+    }
+
+    .error-msg {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .success-msg {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #22c55e;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="/daily-digest/" class="nav-brand" style="text-decoration: none; color: inherit;">📬 Daily Digest</a>
+  </nav>
+
+  <div class="auth-container">
+    <div class="auth-box">
+      <h1 id="auth-title">Welcome back</h1>
+      <p class="subtitle" id="auth-subtitle">Sign in to your account</p>
+
+      <div id="error-container" class="error-msg hidden"></div>
+      <div id="success-container" class="success-msg hidden"></div>
+
+      <form id="auth-form" onsubmit="handleSubmit(event)">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required placeholder="you@example.com">
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required placeholder="••••••••" minlength="8">
+        </div>
+
+        <button type="submit" class="auth-btn primary" id="submit-btn">Sign In</button>
+      </form>
+
+      <div class="divider">or</div>
+
+      <button class="auth-btn github" onclick="signInWithGitHub()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        Continue with GitHub
+      </button>
+
+      <div class="auth-toggle">
+        <span id="toggle-text">Don't have an account?</span>
+        <a id="toggle-link" onclick="toggleMode()">Sign up</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isSignUp = false;
+
+    // Check if already logged in
+    const session = localStorage.getItem('dd_session');
+    if (session) {
+      window.location.href = '/daily-digest/dashboard';
+    }
+
+    function toggleMode() {
+      isSignUp = !isSignUp;
+      
+      document.getElementById('auth-title').textContent = isSignUp ? 'Create account' : 'Welcome back';
+      document.getElementById('auth-subtitle').textContent = isSignUp ? 'Sign up for Daily Digest' : 'Sign in to your account';
+      document.getElementById('submit-btn').textContent = isSignUp ? 'Sign Up' : 'Sign In';
+      document.getElementById('toggle-text').textContent = isSignUp ? 'Already have an account?' : "Don't have an account?";
+      document.getElementById('toggle-link').textContent = isSignUp ? 'Sign in' : 'Sign up';
+      
+      hideMessages();
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-container');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      document.getElementById('success-container').classList.add('hidden');
+    }
+
+    function showSuccess(msg) {
+      const el = document.getElementById('success-container');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      document.getElementById('error-container').classList.add('hidden');
+    }
+
+    function hideMessages() {
+      document.getElementById('error-container').classList.add('hidden');
+      document.getElementById('success-container').classList.add('hidden');
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      hideMessages();
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('submit-btn');
+      
+      btn.disabled = true;
+      btn.textContent = isSignUp ? 'Creating account...' : 'Signing in...';
+
+      try {
+        const res = await fetch('/daily-digest/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: isSignUp ? 'signup' : 'signin', email, password }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Authentication failed');
+        }
+
+        if (data.needsConfirmation) {
+          showSuccess('Check your email to confirm your account!');
+          btn.disabled = false;
+          btn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+          return;
+        }
+
+        // Store session
+        if (data.session) {
+          localStorage.setItem('dd_session', JSON.stringify(data.session));
+        }
+
+        // Redirect to dashboard
+        window.location.href = '/daily-digest/dashboard';
+
+      } catch (err) {
+        showError(err.message);
+        btn.disabled = false;
+        btn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+      }
+    }
+
+    function signInWithGitHub() {
+      window.location.href = '/daily-digest/api/auth/github';
+    }
+
+    // Check URL params for errors
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    if (error) {
+      showError(decodeURIComponent(error).replace(/_/g, ' '));
+    }
+  </script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { requireAuth } = require('../../lib/auth');
 const Anthropic = require('@anthropic-ai/sdk');
 const { Resend } = require('resend');
 const Parser = require('rss-parser');
@@ -11,22 +12,26 @@ module.exports = async (req, res) => {
   }
 
   try {
+    const auth = await requireAuth(req);
+    if (!auth) {
+      return res.status(401).json({ ok: false, error: 'Not authenticated' });
+    }
+
     // Initialize clients
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    // Get user (for now, just get the first one - TODO: add auth)
-    const { data: users, error: userError } = await supabase
+    // Get authenticated user's data
+    const { data: user, error: userError } = await supabase
       .from('users')
       .select('*, github_connections(*), feeds(*)')
-      .limit(1);
+      .eq('id', auth.userId)
+      .single();
 
-    if (userError || !users?.length) {
-      return res.status(400).json({ ok: false, error: 'No user found', details: userError });
+    if (userError || !user) {
+      return res.status(400).json({ ok: false, error: 'User not found', details: userError });
     }
-
-    const user = users[0];
     // github_connections can be an object (one-to-one) or array
     const githubConnection = Array.isArray(user.github_connections) 
       ? user.github_connections[0] 

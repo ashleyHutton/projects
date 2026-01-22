@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { requireAuth } = require('../../lib/auth');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -6,23 +7,20 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { deliveryHour, timezone, summaryLength } = req.body;
-
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-
-    // Get first user (TODO: add auth)
-    const { data: users } = await supabase.from('users').select('id').limit(1);
-    if (!users?.length) {
-      return res.status(400).json({ ok: false, error: 'No user found' });
+    const auth = await requireAuth(req);
+    if (!auth) {
+      return res.status(401).json({ ok: false, error: 'Not authenticated' });
     }
 
-    const userId = users[0].id;
+    const { deliveryHour, timezone, summaryLength } = req.body;
 
-    // Upsert settings
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+
+    // Upsert settings for authenticated user
     const { error } = await supabase
       .from('settings')
       .upsert({
-        user_id: userId,
+        user_id: auth.userId,
         delivery_hour: deliveryHour,
         timezone: timezone,
         summary_length: summaryLength,

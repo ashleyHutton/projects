@@ -1,20 +1,30 @@
 const { createClient } = require('@supabase/supabase-js');
+const { requireAuth } = require('../../lib/auth');
 
 module.exports = async (req, res) => {
   try {
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-
-    // Get user with connections and settings (TODO: add auth, for now get first user)
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('*, github_connections(*), feeds(*), settings(*)')
-      .limit(1);
-
-    if (error || !users?.length) {
-      return res.json({ ok: false, error: 'No user found' });
+    const auth = await requireAuth(req);
+    
+    if (!auth) {
+      return res.json({ 
+        ok: false, 
+        authenticated: false,
+        error: 'Not authenticated' 
+      });
     }
 
-    const user = users[0];
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+
+    // Get user with connections and settings
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*, github_connections(*), feeds(*), settings(*)')
+      .eq('id', auth.userId)
+      .single();
+
+    if (error || !user) {
+      return res.json({ ok: false, error: 'User not found' });
+    }
     
     // Handle both object and array responses from Supabase
     const githubConnection = Array.isArray(user.github_connections) 
@@ -29,6 +39,7 @@ module.exports = async (req, res) => {
 
     res.json({
       ok: true,
+      authenticated: true,
       user: {
         id: user.id,
         email: user.email,
