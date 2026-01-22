@@ -8,6 +8,7 @@
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/(.*\\.(js|css|ico|png|jpg|svg))", "dest": "/public/$1" },
     { "src": "/dashboard", "dest": "/public/dashboard.html" },
+    { "src": "/login", "dest": "/public/login.html" },
     { "src": "/", "dest": "/public/index.html" }
   ],
   "crons": [
