@@ -340,7 +340,7 @@
       
       // Verify session is still valid
       try {
-        const res = await fetch('/daily-digest/api/auth/me', {
+        const res = await fetch('/daily-digest/api/user/state', {
           headers: getAuthHeaders(),
         });
         const data = await res.json();

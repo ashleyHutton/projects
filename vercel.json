@@ -43,6 +43,10 @@
       "dest": "/daily-digest/public/dashboard.html"
     },
     {
+      "src": "/daily-digest/login",
+      "dest": "/daily-digest/public/login.html"
+    },
+    {
       "src": "/daily-digest/(.*\\.(css|js|png|ico))",
       "dest": "/daily-digest/public/$1"
     },

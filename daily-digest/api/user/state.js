@@ -42,6 +42,7 @@ module.exports = async (req, res) => {
       authenticated: true,
       user: {
         id: user.id,
+        authId: auth.authId,
         email: user.email,
         subscriptionStatus: user.subscription_status,
       },
