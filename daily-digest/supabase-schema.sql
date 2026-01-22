@@ -5,7 +5,7 @@ CREATE TABLE users (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   stripe_customer_id TEXT UNIQUE,
-  subscription_status TEXT DEFAULT 'trial',
+  subscription_status TEXT DEFAULT NULL,  -- null until user subscribes via Stripe
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -9,16 +9,16 @@ module.exports = async (req, res) => {
   try {
     const { action, email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required' });
-    }
-
     const supabase = createClient(
       process.env.SUPABASE_URL,
       process.env.SUPABASE_ANON_KEY
     );
 
+    // Resend only needs email
     if (action === 'resend') {
+      if (!email) {
+        return res.status(400).json({ error: 'Email required' });
+      }
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email,
@@ -29,6 +29,11 @@ module.exports = async (req, res) => {
       }
 
       return res.json({ ok: true, message: 'Confirmation email sent!' });
+    }
+
+    // All other actions require email + password
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
     }
 
     if (action === 'signup') {

@@ -35,6 +35,13 @@ module.exports = async (req, res) => {
 
     for (const user of users || []) {
       try {
+        // Only send to active or trialing subscribers
+        const subStatus = user.subscription_status;
+        if (subStatus !== 'active' && subStatus !== 'trialing') {
+          results.skipped++;
+          continue;
+        }
+
         const settings = Array.isArray(user.settings) ? user.settings[0] : user.settings;
         const githubConnection = Array.isArray(user.github_connections) 
           ? user.github_connections[0] 

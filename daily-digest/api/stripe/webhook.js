@@ -33,7 +33,7 @@ function mapSubscriptionStatus(stripeStatus) {
     canceled: 'canceled',
     incomplete: 'incomplete',
     incomplete_expired: 'expired',
-    trialing: 'trial',
+    trialing: 'trialing',  // Keep as 'trialing' to match dashboard/cron checks
     paused: 'paused',
   };
   return statusMap[stripeStatus] || stripeStatus;

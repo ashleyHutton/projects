@@ -32,6 +32,16 @@ module.exports = async (req, res) => {
     if (userError || !user) {
       return res.status(400).json({ ok: false, error: 'User not found', details: userError });
     }
+
+    // Check subscription status (only active or trialing allowed)
+    const subStatus = user.subscription_status;
+    if (subStatus !== 'active' && subStatus !== 'trialing') {
+      return res.status(403).json({ 
+        ok: false, 
+        error: 'Subscription required',
+        message: 'Subscribe to send test digests and receive daily emails.'
+      });
+    }
     // github_connections can be an object (one-to-one) or array
     const githubConnection = Array.isArray(user.github_connections) 
       ? user.github_connections[0] 

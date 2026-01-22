@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daily Digest — AI-Powered Morning Briefings</title>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="/daily-digest/styles.css">
 </head>
 <body>
   <nav class="nav">
@@ -12,7 +12,7 @@
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#pricing">Pricing</a>
-      <a href="/dashboard" class="btn btn-secondary">Login</a>
+      <a href="/daily-digest/login" id="auth-btn" class="btn btn-secondary">Login</a>
     </div>
   </nav>
 
@@ -109,9 +109,19 @@
   </footer>
 
   <script>
+    // Check if user is already logged in
+    const session = localStorage.getItem('dd_session');
+    if (session) {
+      const authBtn = document.getElementById('auth-btn');
+      if (authBtn) {
+        authBtn.textContent = 'Dashboard';
+        authBtn.href = '/daily-digest/dashboard';
+      }
+    }
+
     async function subscribe(plan) {
       try {
-        const res = await fetch('/daily-digest/api/stripe/create-checkout', {
+        const res = await fetch('/daily-digest/api/stripe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ plan })

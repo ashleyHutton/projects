@@ -47,6 +47,10 @@
       "dest": "/daily-digest/public/login.html"
     },
     {
+      "src": "/daily-digest/resend-confirmation",
+      "dest": "/daily-digest/public/resend-confirmation.html"
+    },
+    {
       "src": "/daily-digest/(.*\\.(css|js|png|ico))",
       "dest": "/daily-digest/public/$1"
     },

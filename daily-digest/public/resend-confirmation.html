@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resend Confirmation — Daily Digest</title>
+  <link rel="stylesheet" href="/daily-digest/styles.css">
+  <style>
+    .auth-container {
+      max-width: 400px;
+      margin: 4rem auto;
+      padding: 2rem;
+    }
+
+    .auth-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+    }
+
+    .auth-box h1 {
+      font-size: 1.5rem;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .auth-box .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .auth-btn {
+      width: 100%;
+      padding: 0.875rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .auth-btn.primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .auth-btn.primary:hover {
+      opacity: 0.9;
+    }
+
+    .auth-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .back-link {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: var(--text-muted);
+    }
+
+    .back-link a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+
+    .error-msg {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .success-msg {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #22c55e;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="/daily-digest/" class="nav-brand" style="text-decoration: none; color: inherit;">📬 Daily Digest</a>
+  </nav>
+
+  <div class="auth-container">
+    <div class="auth-box">
+      <h1>Resend Confirmation</h1>
+      <p class="subtitle">Enter your email and we'll send a new confirmation link</p>
+
+      <div id="error-container" class="error-msg hidden"></div>
+      <div id="success-container" class="success-msg hidden"></div>
+
+      <form id="resend-form" onsubmit="handleResend(event)">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required placeholder="you@example.com">
+        </div>
+
+        <button type="submit" class="auth-btn primary" id="submit-btn">Send Confirmation Email</button>
+      </form>
+
+      <div class="back-link">
+        <a href="/daily-digest/login">← Back to login</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showError(msg) {
+      const el = document.getElementById('error-container');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      document.getElementById('success-container').classList.add('hidden');
+    }
+
+    function showSuccess(msg) {
+      const el = document.getElementById('success-container');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      document.getElementById('error-container').classList.add('hidden');
+    }
+
+    async function handleResend(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const btn = document.getElementById('submit-btn');
+      
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        const res = await fetch('/daily-digest/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'resend', email }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to send confirmation email');
+        }
+
+        showSuccess('Confirmation email sent! Check your inbox (and spam folder).');
+        btn.textContent = 'Email Sent!';
+
+      } catch (err) {
+        showError(err.message);
+        btn.disabled = false;
+        btn.textContent = 'Send Confirmation Email';
+      }
+    }
+
+    // Pre-fill email from URL param
+    const urlParams = new URLSearchParams(window.location.search);
+    const email = urlParams.get('email');
+    if (email) {
+      document.getElementById('email').value = email;
+    }
+  </script>
+</body>
+</html>

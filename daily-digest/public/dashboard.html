@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — Daily Digest</title>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="/daily-digest/styles.css">
   <style>
     .dashboard {
       max-width: 800px;
@@ -147,6 +147,45 @@
       margin-bottom: 1.5rem;
     }
 
+    .subscribe-banner {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15));
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .subscribe-banner h2 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.2rem;
+    }
+
+    .subscribe-banner p {
+      color: var(--text-muted);
+      margin: 0 0 1rem 0;
+    }
+
+    .subscribe-banner .btn {
+      margin: 0;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .preview-label {
+      display: inline-block;
+      background: rgba(251, 191, 36, 0.2);
+      color: #f59e0b;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      margin-left: 0.5rem;
+      text-transform: uppercase;
+    }
+
     .status-text {
       display: flex;
       align-items: center;
@@ -219,20 +258,26 @@
 <body>
   <div class="toast-container" id="toast-container"></div>
   <nav class="nav">
-    <a href="/" class="nav-brand" style="text-decoration: none; color: inherit;">📬 Daily Digest</a>
+    <a href="/daily-digest/" class="nav-brand" style="text-decoration: none; color: inherit;">📬 Daily Digest</a>
     <div class="nav-links">
-      <a href="/daily-digest/api/stripe/portal" class="btn btn-secondary">Manage Billing</a>
+      <a href="/daily-digest/#pricing" id="billing-btn" class="btn btn-secondary">Subscribe</a>
       <a href="#" onclick="logout(); return false;" class="btn btn-secondary">Logout</a>
     </div>
   </nav>
 
   <div class="dashboard">
+    <div id="subscribe-banner" class="subscribe-banner hidden">
+      <h2>🚀 Activate Your Daily Digest</h2>
+      <p>Connect your sources below, then subscribe to start receiving AI-powered morning briefings.</p>
+      <a href="/daily-digest/#pricing" class="btn btn-primary">Start 7-Day Free Trial</a>
+    </div>
+
     <div class="status-bar">
       <div class="status-text">
-        <span class="status-dot"></span>
-        <span>Next digest: Tomorrow at 7:00 AM</span>
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Next digest: Tomorrow at 7:00 AM</span>
       </div>
-      <button class="btn btn-primary" onclick="sendTestDigest()">Send Test Digest</button>
+      <button class="btn btn-primary" id="test-digest-btn" onclick="sendTestDigest()">Send Test Digest</button>
     </div>
 
     <div class="section">
@@ -410,6 +455,39 @@
           if (statusText) {
             statusText.textContent = `Digest for ${data.user.email} · Tomorrow at ${data.settings?.deliveryHour || 7}:00 AM`;
           }
+        }
+        
+        // Update UI based on subscription status
+        const subStatus = data.user?.subscriptionStatus;
+        const isSubscribed = subStatus === 'active' || subStatus === 'trialing' || subStatus === 'trial';
+        
+        // Billing button
+        const billingBtn = document.getElementById('billing-btn');
+        if (billingBtn && isSubscribed) {
+          billingBtn.textContent = 'Manage Billing';
+          billingBtn.href = '/daily-digest/api/stripe?action=portal';
+        }
+        
+        // Subscribe banner
+        const subscribeBanner = document.getElementById('subscribe-banner');
+        if (subscribeBanner) {
+          subscribeBanner.classList.toggle('hidden', isSubscribed);
+        }
+        
+        // Test digest button
+        const testBtn = document.getElementById('test-digest-btn');
+        if (testBtn && !isSubscribed) {
+          testBtn.disabled = true;
+          testBtn.textContent = 'Subscribe to Test';
+          testBtn.title = 'Subscribe to send test digests';
+        }
+        
+        // Status bar
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        if (!isSubscribed && statusDot && statusText) {
+          statusDot.style.background = '#f59e0b';
+          statusText.textContent = 'Preview mode — subscribe to activate daily emails';
         }
         
       } catch (err) {
