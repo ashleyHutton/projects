@@ -1,6 +1,9 @@
 const { createClient } = require('@supabase/supabase-js');
 const Anthropic = require('@anthropic-ai/sdk');
 const { Resend } = require('resend');
+const Parser = require('rss-parser');
+
+const rssParser = new Parser();
 
 module.exports = async (req, res) => {
   // Verify cron secret (Vercel sends this header)
@@ -51,20 +54,23 @@ module.exports = async (req, res) => {
           continue;
         }
 
-        // Skip if no GitHub connection
-        if (!githubConnection) {
-          results.skipped++;
-          continue;
+        // Fetch GitHub activity (optional now)
+        let githubActivity = { events: [], notifications: [], username: null };
+        if (githubConnection) {
+          githubActivity = await fetchGitHubActivity(
+            githubConnection.access_token, 
+            githubConnection.github_username
+          );
         }
-
-        // Fetch GitHub activity
-        const githubActivity = await fetchGitHubActivity(
-          githubConnection.access_token, 
-          githubConnection.github_username
-        );
 
         // Fetch RSS feeds
         const rssContent = await fetchRSSFeeds(feeds);
+
+        // Skip if no content at all
+        if (!githubConnection && rssContent.length === 0) {
+          results.skipped++;
+          continue;
+        }
 
         // Generate AI summary
         const summary = await generateSummary(anthropic, githubActivity, rssContent);
@@ -100,6 +106,7 @@ module.exports = async (req, res) => {
 
 async function fetchGitHubActivity(token, username) {
   try {
+    // Get recent events
     const eventsRes = await fetch(`https://api.github.com/users/${username}/events?per_page=30`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -108,56 +115,114 @@ async function fetchGitHubActivity(token, username) {
     });
     const events = await eventsRes.json();
 
+    // Get notifications
+    const notifRes = await fetch('https://api.github.com/notifications?per_page=10', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+      },
+    });
+    const notifications = await notifRes.json();
+
     return {
       events: Array.isArray(events) ? events.slice(0, 20) : [],
+      notifications: Array.isArray(notifications) ? notifications : [],
       username,
     };
   } catch (err) {
-    return { events: [], username, error: err.message };
+    console.error('GitHub fetch error:', err);
+    return { events: [], notifications: [], username, error: err.message };
   }
 }
 
 async function fetchRSSFeeds(feeds) {
-  const Parser = require('rss-parser');
-  const parser = new Parser();
   const results = [];
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  for (const feed of feeds.slice(0, 5)) { // Limit to 5 feeds
+  for (const feed of feeds.slice(0, 10)) { // Limit to 10 feeds
     try {
-      const parsed = await parser.parseURL(feed.url);
-      const recentItems = parsed.items.slice(0, 5).map(item => ({
+      const parsed = await rssParser.parseURL(feed.url);
+      
+      // Get recent items (last 24 hours, or latest 3 if no dates)
+      let recentItems = (parsed.items || [])
+        .filter(item => {
+          const pubDate = item.pubDate ? new Date(item.pubDate) : null;
+          return !pubDate || pubDate > oneDayAgo;
+        })
+        .slice(0, 5);
+
+      // If filtering by date gave us nothing, just take the latest few
+      if (recentItems.length === 0 && parsed.items?.length > 0) {
+        recentItems = parsed.items.slice(0, 3);
+      }
+
+      const mappedItems = recentItems.map(item => ({
         title: item.title,
         link: item.link,
-        date: item.pubDate,
+        pubDate: item.pubDate,
+        snippet: (item.contentSnippet || item.content || '').substring(0, 150),
       }));
-      results.push({ source: parsed.title || feed.url, items: recentItems });
+
+      if (mappedItems.length > 0) {
+        results.push({
+          feedTitle: parsed.title || feed.title || feed.url,
+          feedUrl: feed.url,
+          items: mappedItems,
+        });
+      }
     } catch (err) {
-      // Skip failed feeds
+      console.error(`Error fetching RSS feed ${feed.url}:`, err.message);
+      // Continue with other feeds
     }
   }
 
   return results;
 }
 
-async function generateSummary(anthropic, githubData, rssContent) {
-  const prompt = `Create a morning digest email summarizing this activity. Be concise and friendly.
+async function generateSummary(anthropic, githubData, rssFeeds) {
+  let prompt = `You are creating a morning digest email. Summarize the following content into a brief, friendly email.
 
-GitHub Activity for ${githubData.username}:
-${JSON.stringify(githubData.events.slice(0, 10).map(e => ({ type: e.type, repo: e.repo?.name })), null, 2)}
+`;
 
-RSS Feed Updates:
-${JSON.stringify(rssContent, null, 2)}
+  // Add GitHub section if available
+  if (githubData.username && githubData.events.length > 0) {
+    prompt += `## GitHub Activity for ${githubData.username}:
+- Events: ${JSON.stringify(githubData.events.map(e => ({ type: e.type, repo: e.repo?.name, created: e.created_at })), null, 2)}
+- Notifications: ${githubData.notifications?.length || 0} pending
 
-Format with HTML sections:
-1. <h2>🐙 GitHub Highlights</h2> - 3-5 bullet points
-2. <h2>📰 From Your Feeds</h2> - Top stories (skip if no feeds)
-3. <h2>💡 TL;DR</h2> - 1-2 sentence summary
+`;
+  }
 
-Use <ul><li> for lists. Keep it scannable.`;
+  // Add RSS feeds section if available
+  if (rssFeeds.length > 0) {
+    prompt += `## RSS Feed Updates:
+${rssFeeds.map(feed => `
+### ${feed.feedTitle}
+${feed.items.map(item => `- "${item.title}" ${item.snippet ? `- ${item.snippet}` : ''} (${item.link})`).join('\n')}
+`).join('\n')}
+
+`;
+  }
+
+  // Build the sections dynamically based on what content we have
+  const sections = [];
+  if (githubData.username && githubData.events.length > 0) {
+    sections.push('<h2>🐙 GitHub Highlights</h2> - 3-5 bullet points of key activity');
+  }
+  if (rssFeeds.length > 0) {
+    sections.push('<h2>📰 News & Reads</h2> - Key highlights from RSS feeds with clickable links');
+  }
+  sections.push('<h2>💡 TL;DR</h2> - 1-2 sentence summary of everything');
+
+  prompt += `Create a summary with these sections (use HTML):
+${sections.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+Keep it concise, scannable, and friendly. Use <ul><li> for lists. Include links using <a href="url">title</a> format for RSS items.
+If there's no activity in a section, skip that section entirely.`;
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 1024,
+    max_tokens: 1500,
     messages: [{ role: 'user', content: prompt }],
   });
 
@@ -169,7 +234,7 @@ function buildEmailHtml(summary, date) {
 <html>
 <head>
   <style>
-    body { font-family: -apple-system, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
     .container { background: white; padding: 30px; border-radius: 10px; }
     h1 { color: #6366f1; margin-bottom: 5px; }
     h2 { color: #444; font-size: 1.1rem; margin-top: 25px; }
@@ -186,6 +251,7 @@ function buildEmailHtml(summary, date) {
     <p class="date">${date}</p>
     ${summary}
     <div class="footer">
+      <p>You're receiving this because you subscribed to Daily Digest.</p>
       <p><a href="https://projects.ashleyweinaug.com/daily-digest/dashboard">Manage preferences</a></p>
     </div>
   </div>

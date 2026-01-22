@@ -1,6 +1,9 @@
 const { createClient } = require('@supabase/supabase-js');
 const Anthropic = require('@anthropic-ai/sdk');
 const { Resend } = require('resend');
+const Parser = require('rss-parser');
+
+const rssParser = new Parser();
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -16,7 +19,7 @@ module.exports = async (req, res) => {
     // Get user (for now, just get the first one - TODO: add auth)
     const { data: users, error: userError } = await supabase
       .from('users')
-      .select('*, github_connections(*)')
+      .select('*, github_connections(*), feeds(*)')
       .limit(1);
 
     if (userError || !users?.length) {
@@ -29,15 +32,20 @@ module.exports = async (req, res) => {
       ? user.github_connections[0] 
       : user.github_connections;
 
-    if (!githubConnection) {
-      return res.status(400).json({ ok: false, error: 'No GitHub connection found', user: { id: user.id, email: user.email } });
+    // Get user's RSS feeds
+    const userFeeds = Array.isArray(user.feeds) ? user.feeds : [];
+
+    let githubActivity = { events: [], notifications: [], username: null };
+    if (githubConnection) {
+      // Fetch GitHub activity
+      githubActivity = await fetchGitHubActivity(githubConnection.access_token, githubConnection.github_username);
     }
 
-    // Fetch GitHub activity
-    const githubActivity = await fetchGitHubActivity(githubConnection.access_token, githubConnection.github_username);
+    // Fetch RSS feed content
+    const rssContent = await fetchRSSFeeds(userFeeds);
 
     // Generate AI summary
-    const summary = await generateSummary(anthropic, githubActivity);
+    const summary = await generateSummary(anthropic, githubActivity, rssContent);
 
     // Send email
     const today = new Date().toLocaleDateString('en-US', {
@@ -61,6 +69,7 @@ module.exports = async (req, res) => {
       ok: true, 
       message: `Test digest sent to ${user.email}`,
       emailId: emailData?.id,
+      feedsIncluded: rssContent.length,
       preview: summary.substring(0, 200) + '...'
     });
 
@@ -101,23 +110,81 @@ async function fetchGitHubActivity(token, username) {
   }
 }
 
-async function generateSummary(anthropic, githubData) {
-  const prompt = `You are creating a morning digest email. Summarize this GitHub activity into a brief, friendly email.
+async function fetchRSSFeeds(feeds) {
+  const results = [];
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-GitHub Activity for ${githubData.username}:
+  for (const feed of feeds) {
+    try {
+      const parsed = await rssParser.parseURL(feed.url);
+      
+      // Get recent items (last 24 hours)
+      const recentItems = (parsed.items || [])
+        .filter(item => {
+          const pubDate = item.pubDate ? new Date(item.pubDate) : null;
+          return !pubDate || pubDate > oneDayAgo;
+        })
+        .slice(0, 5) // Max 5 items per feed
+        .map(item => ({
+          title: item.title,
+          link: item.link,
+          pubDate: item.pubDate,
+          snippet: item.contentSnippet?.substring(0, 200) || item.content?.substring(0, 200) || '',
+        }));
+
+      if (recentItems.length > 0) {
+        results.push({
+          feedTitle: parsed.title || feed.title || feed.url,
+          feedUrl: feed.url,
+          items: recentItems,
+        });
+      }
+    } catch (err) {
+      console.error(`Error fetching RSS feed ${feed.url}:`, err.message);
+      // Continue with other feeds
+    }
+  }
+
+  return results;
+}
+
+async function generateSummary(anthropic, githubData, rssFeeds) {
+  let prompt = `You are creating a morning digest email. Summarize the following content into a brief, friendly email.
+
+`;
+
+  // Add GitHub section if available
+  if (githubData.username) {
+    prompt += `## GitHub Activity for ${githubData.username}:
 - Events: ${JSON.stringify(githubData.events.map(e => ({ type: e.type, repo: e.repo?.name, created: e.created_at })), null, 2)}
 - Notifications: ${githubData.notifications.length} pending
 
-Create a summary with these sections (use HTML):
-1. <h2>🐙 GitHub Highlights</h2> - 3-5 bullet points of key activity
-2. <h2>📋 Pending</h2> - Any notifications or items needing attention
-3. <h2>💡 TL;DR</h2> - 1-2 sentence summary
+`;
+  }
 
-Keep it concise, scannable, and friendly. Use <ul><li> for lists. If there's no activity, say it's been quiet.`;
+  // Add RSS feeds section if available
+  if (rssFeeds.length > 0) {
+    prompt += `## RSS Feed Updates:
+${rssFeeds.map(feed => `
+### ${feed.feedTitle}
+${feed.items.map(item => `- "${item.title}" - ${item.snippet}`).join('\n')}
+`).join('\n')}
+
+`;
+  }
+
+  prompt += `Create a summary with these sections (use HTML):
+1. ${githubData.username ? '<h2>🐙 GitHub Highlights</h2> - 3-5 bullet points of key activity' : ''}
+${rssFeeds.length > 0 ? '2. <h2>📰 News & Reads</h2> - Key highlights from RSS feeds with links' : ''}
+3. <h2>📋 Pending</h2> - Any notifications or items needing attention
+4. <h2>💡 TL;DR</h2> - 1-2 sentence summary of everything
+
+Keep it concise, scannable, and friendly. Use <ul><li> for lists. Include links using <a href="url">title</a> format for RSS items.
+If there's no activity in a section, skip that section entirely.`;
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 1024,
+    max_tokens: 1500,
     messages: [{ role: 'user', content: prompt }],
   });
 

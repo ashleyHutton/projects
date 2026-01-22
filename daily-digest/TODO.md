@@ -12,11 +12,14 @@
 - [x] RSS feed management (add/remove, persisted)
 - [x] Settings persistence (delivery time, timezone, summary length)
 - [x] Daily cron job configured (runs hourly, sends at user's scheduled time)
+- [x] Stripe webhook handling (checkout.completed, subscription.created/updated/deleted, invoice.payment_failed)
+- [x] Supabase env vars added to Vercel (SUPABASE_URL, SUPABASE_SERVICE_KEY)
+- [x] Include RSS feeds in digest email (GitHub + RSS with snippets & links)
 
 ## 🔧 TODO
-- [ ] Include RSS feeds in digest email (currently only GitHub)
+- [ ] Add missing Stripe env vars to Vercel: STRIPE_SECRET_KEY, STRIPE_PRICE_MONTHLY, STRIPE_PRICE_YEARLY
+- [ ] Verify Stripe webhook is configured with correct URL and events
 - [ ] Proper auth/sessions — login flow for multi-user support
-- [ ] Stripe webhook handling — update subscription status on events
 - [ ] Rate limiting on test digest (prevent abuse)
 - [ ] Email verification for new users
 - [ ] Unsubscribe flow
