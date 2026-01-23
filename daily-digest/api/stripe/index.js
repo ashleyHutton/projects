@@ -31,13 +31,27 @@ module.exports = async (req, res) => {
 
 async function handleCheckout(req, res) {
   try {
+    const auth = await requireAuth(req);
+    
+    if (!auth) {
+      return res.status(401).json({ error: 'Not authenticated. Please log in first.' });
+    }
+
     const { plan } = req.body;
 
     if (!plan || !PRICES[plan]) {
       return res.status(400).json({ error: 'Invalid plan' });
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, email, stripe_customer_id')
+      .eq('id', auth.userId)
+      .single();
+
+    // Build checkout session options
+    const sessionOptions = {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [
@@ -48,10 +62,26 @@ async function handleCheckout(req, res) {
       ],
       subscription_data: {
         trial_period_days: 7,
+        metadata: {
+          user_id: user.id,
+        },
+      },
+      metadata: {
+        user_id: user.id,
       },
       success_url: `${process.env.APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.APP_URL}#pricing`,
-    });
+    };
+
+    // If user already has a Stripe customer, use it
+    if (user.stripe_customer_id) {
+      sessionOptions.customer = user.stripe_customer_id;
+    } else {
+      // Pre-fill email for new customers
+      sessionOptions.customer_email = user.email;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionOptions);
 
     res.json({ url: session.url });
   } catch (err) {

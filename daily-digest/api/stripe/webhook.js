@@ -90,48 +90,56 @@ async function updateUserSubscription(userId, updates) {
 }
 
 /**
+ * Find user by ID
+ */
+async function findUserById(userId) {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Error finding user by ID:', error);
+  }
+  return data;
+}
+
+/**
  * Handle checkout.session.completed
  * Link Stripe customer to user account
  */
 async function handleCheckoutCompleted(session) {
   const customerEmail = session.customer_email || session.customer_details?.email;
   const customerId = session.customer;
+  const userId = session.metadata?.user_id;
 
-  if (!customerEmail) {
-    console.error('No email found in checkout session');
+  console.log('Checkout completed:', { customerEmail, customerId, userId });
+
+  // Try to find user by ID first (most reliable), then by email
+  let user = null;
+  
+  if (userId) {
+    user = await findUserById(userId);
+    console.log('Found user by ID:', user?.id);
+  }
+  
+  if (!user && customerEmail) {
+    user = await findUserByEmail(customerEmail);
+    console.log('Found user by email:', user?.id);
+  }
+  
+  if (!user) {
+    console.error('No user found for checkout session');
     return;
   }
 
-  console.log('Checkout completed for:', customerEmail);
-
-  // Find existing user by email
-  let user = await findUserByEmail(customerEmail);
-
-  if (user) {
-    // Update existing user with Stripe customer ID
-    await updateUserSubscription(user.id, {
-      stripe_customer_id: customerId,
-      subscription_status: 'active', // They just subscribed!
-    });
-    console.log('Updated existing user with Stripe customer ID:', user.id);
-  } else {
-    // Create new user (they subscribed without signing up first)
-    const { data, error } = await supabase
-      .from('users')
-      .insert({
-        email: customerEmail,
-        stripe_customer_id: customerId,
-        subscription_status: 'active',
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating user:', error);
-      throw error;
-    }
-    console.log('Created new user from checkout:', data.id);
-  }
+  // Update user with Stripe customer ID and active status
+  await updateUserSubscription(user.id, {
+    stripe_customer_id: customerId,
+    subscription_status: 'active',
+  });
+  console.log('Updated user with Stripe customer ID:', user.id);
 }
 
 /**
@@ -140,12 +148,23 @@ async function handleCheckoutCompleted(session) {
 async function handleSubscriptionUpdate(subscription) {
   const customerId = subscription.customer;
   const status = mapSubscriptionStatus(subscription.status);
+  const userId = subscription.metadata?.user_id;
 
-  console.log('Subscription update:', customerId, status);
+  console.log('Subscription update:', { customerId, status, userId });
 
-  const user = await findUserByStripeCustomer(customerId);
+  // Try to find user by metadata user_id first, then by Stripe customer
+  let user = null;
+  
+  if (userId) {
+    user = await findUserById(userId);
+  }
+  
   if (!user) {
-    console.error('No user found for Stripe customer:', customerId);
+    user = await findUserByStripeCustomer(customerId);
+  }
+  
+  if (!user) {
+    console.error('No user found for subscription:', customerId);
     return;
   }
 
