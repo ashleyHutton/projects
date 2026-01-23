@@ -398,7 +398,7 @@
 
     function logout() {
       clearSession();
-      window.location.href = '/daily-digest/api/auth/logout';
+      window.location.href = '/daily-digest/api/auth?action=logout';
     }
 
     // Load user state on page load

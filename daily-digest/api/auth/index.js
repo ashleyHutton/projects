@@ -1,7 +1,19 @@
 const { createClient } = require('@supabase/supabase-js');
+const { clearAuthCookies } = require('../../lib/auth');
 
-// Combined auth endpoint: POST /api/auth with action=signup|signin
+// Combined auth endpoint: POST /api/auth with action=signup|signin|logout
+// Also handles GET for logout redirect
 module.exports = async (req, res) => {
+  // Handle logout via GET (for redirect from dashboard)
+  if (req.method === 'GET' || req.query.action === 'logout') {
+    const cookies = clearAuthCookies();
+    res.setHeader('Set-Cookie', cookies);
+    if (req.headers.accept?.includes('application/json')) {
+      return res.json({ ok: true, message: 'Logged out' });
+    }
+    return res.redirect('/daily-digest/');
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
