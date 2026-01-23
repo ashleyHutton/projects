@@ -305,25 +305,8 @@
 
     <div class="section">
       <h2>⚙️ Settings</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">Digests are sent daily at 6:00 AM CST (Monday–Friday)</p>
       <div class="settings-grid">
-        <div class="setting-row">
-          <span class="setting-label">Delivery time</span>
-          <select id="delivery-time">
-            <option value="6">6:00 AM</option>
-            <option value="7" selected>7:00 AM</option>
-            <option value="8">8:00 AM</option>
-            <option value="9">9:00 AM</option>
-          </select>
-        </div>
-        <div class="setting-row">
-          <span class="setting-label">Timezone</span>
-          <select id="timezone">
-            <option value="America/New_York">Eastern</option>
-            <option value="America/Chicago" selected>Central</option>
-            <option value="America/Denver">Mountain</option>
-            <option value="America/Los_Angeles">Pacific</option>
-          </select>
-        </div>
         <div class="setting-row">
           <span class="setting-label">Summary length</span>
           <select id="summary-length">
@@ -332,6 +315,13 @@
             <option value="detailed">Detailed</option>
           </select>
         </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📜 Digest History</h2>
+      <div id="history-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <div style="color: var(--text-muted); font-style: italic;">Loading history...</div>
       </div>
     </div>
   </div>
@@ -444,16 +434,17 @@
         
         // Update settings
         if (data.settings) {
-          document.getElementById('delivery-time').value = data.settings.deliveryHour;
-          document.getElementById('timezone').value = data.settings.timezone;
           document.getElementById('summary-length').value = data.settings.summaryLength;
         }
+        
+        // Update history
+        renderHistory(data.history);
         
         // Show user email in status bar
         if (data.user?.email) {
           const statusText = document.querySelector('.status-text span:last-child');
           if (statusText) {
-            statusText.textContent = `Digest for ${data.user.email} · Tomorrow at ${data.settings?.deliveryHour || 7}:00 AM`;
+            statusText.textContent = `Digest for ${data.user.email} · Daily at 6:00 AM CST`;
           }
         }
         
@@ -474,12 +465,16 @@
           subscribeBanner.classList.toggle('hidden', isSubscribed);
         }
         
-        // Test digest button
+        // Test digest button - only show for admins
         const testBtn = document.getElementById('test-digest-btn');
-        if (testBtn && !isSubscribed) {
-          testBtn.disabled = true;
-          testBtn.textContent = 'Subscribe to Test';
-          testBtn.title = 'Subscribe to send test digests';
+        if (testBtn) {
+          if (!data.user?.isAdmin) {
+            testBtn.style.display = 'none';
+          } else if (!isSubscribed) {
+            testBtn.disabled = true;
+            testBtn.textContent = 'Subscribe to Test';
+            testBtn.title = 'Subscribe to send test digests';
+          }
         }
         
         // Status bar
@@ -493,6 +488,40 @@
       } catch (err) {
         console.error('Failed to load user state:', err);
       }
+    }
+
+    function renderHistory(history) {
+      const historyList = document.getElementById('history-list');
+      if (!history?.length) {
+        historyList.innerHTML = '<div style="color: var(--text-muted); font-style: italic;">No digests sent yet</div>';
+        return;
+      }
+      
+      historyList.innerHTML = history.map(h => {
+        const date = new Date(h.sentAt).toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        });
+        const time = new Date(h.sentAt).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        });
+        const statusIcon = h.status === 'sent' ? '✅' : '❌';
+        const items = h.githubEventsCount + h.rssItemsCount;
+        
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+            <div>
+              <span>${statusIcon}</span>
+              <span style="margin-left: 0.5rem;">${date} at ${time}</span>
+            </div>
+            <div style="color: var(--text-muted); font-size: 0.85rem;">
+              ${items} item${items !== 1 ? 's' : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
     }
     
     // Load state on page load (after auth check)
@@ -554,15 +583,13 @@
     }
     
     async function saveSettings() {
-      const deliveryHour = parseInt(document.getElementById('delivery-time').value);
-      const timezone = document.getElementById('timezone').value;
       const summaryLength = document.getElementById('summary-length').value;
       
       try {
         const res = await fetch('/daily-digest/api/settings/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-          body: JSON.stringify({ deliveryHour, timezone, summaryLength }),
+          body: JSON.stringify({ summaryLength }),
         });
         const data = await res.json();
         
@@ -577,8 +604,6 @@
     }
     
     // Auto-save settings when changed
-    document.getElementById('delivery-time')?.addEventListener('change', saveSettings);
-    document.getElementById('timezone')?.addEventListener('change', saveSettings);
     document.getElementById('summary-length')?.addEventListener('change', saveSettings);
 
     function showToast(message, type = 'success', duration = 4000) {

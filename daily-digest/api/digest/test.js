@@ -33,6 +33,11 @@ module.exports = async (req, res) => {
       return res.status(400).json({ ok: false, error: 'User not found', details: userError });
     }
 
+    // Only admins can send test digests
+    if (!user.is_admin) {
+      return res.status(403).json({ ok: false, error: 'Admin access required' });
+    }
+
     // Check subscription status (only active or trialing allowed)
     const subStatus = user.subscription_status;
     if (subStatus !== 'active' && subStatus !== 'trialing') {

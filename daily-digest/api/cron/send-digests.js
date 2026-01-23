@@ -48,22 +48,9 @@ module.exports = async (req, res) => {
           : user.github_connections;
         const feeds = Array.isArray(user.feeds) ? user.feeds : (user.feeds ? [user.feeds] : []);
 
-        // Check if it's time to send for this user
-        const userTimezone = settings?.timezone || 'America/Chicago';
-        const deliveryHour = settings?.delivery_hour || 7;
-        
-        const userTime = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }));
-        const currentHour = userTime.getHours();
-        const currentDay = userTime.getDay(); // 0 = Sunday, 6 = Saturday
-
-        // Skip weekends
+        // Skip weekends (based on UTC)
+        const currentDay = now.getUTCDay(); // 0 = Sunday, 6 = Saturday
         if (currentDay === 0 || currentDay === 6) {
-          results.skipped++;
-          continue;
-        }
-
-        // Only send if it's the right hour (cron runs hourly at :00)
-        if (currentHour !== deliveryHour) {
           results.skipped++;
           continue;
         }
@@ -96,17 +83,44 @@ module.exports = async (req, res) => {
           day: 'numeric',
         });
 
+        const subject = `📬 Your Daily Digest — ${today}`;
+        const unsubscribeUrl = `${process.env.APP_URL || 'https://projects.ashleyweinaug.com/daily-digest'}/api/unsubscribe?token=${user.unsubscribe_token}`;
+
         await resend.emails.send({
           from: 'Daily Digest <onboarding@resend.dev>',
           to: user.email,
-          subject: `📬 Your Daily Digest — ${today}`,
-          html: buildEmailHtml(summary, today),
+          subject,
+          html: buildEmailHtml(summary, today, unsubscribeUrl),
+          headers: {
+            'List-Unsubscribe': `<${unsubscribeUrl}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          },
+        });
+
+        // Log to digest history
+        const githubEventsCount = githubActivity.events?.length || 0;
+        const rssItemsCount = rssContent.reduce((acc, feed) => acc + (feed.items?.length || 0), 0);
+        
+        await supabase.from('digest_history').insert({
+          user_id: user.id,
+          subject,
+          github_events_count: githubEventsCount,
+          rss_items_count: rssItemsCount,
+          status: 'sent',
         });
 
         results.sent++;
 
       } catch (userError) {
         results.errors.push({ userId: user.id, error: userError.message });
+        
+        // Log failed digest
+        await supabase.from('digest_history').insert({
+          user_id: user.id,
+          subject: `Failed digest - ${new Date().toLocaleDateString()}`,
+          status: 'failed',
+          error_message: userError.message,
+        }).catch(() => {}); // Don't fail if history logging fails
       }
     }
 
@@ -243,7 +257,7 @@ If there's no activity in a section, skip that section entirely.`;
   return response.content[0].text;
 }
 
-function buildEmailHtml(summary, date) {
+function buildEmailHtml(summary, date, unsubscribeUrl) {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -266,7 +280,7 @@ function buildEmailHtml(summary, date) {
     ${summary}
     <div class="footer">
       <p>You're receiving this because you subscribed to Daily Digest.</p>
-      <p><a href="https://projects.ashleyweinaug.com/daily-digest/dashboard">Manage preferences</a></p>
+      <p><a href="https://projects.ashleyweinaug.com/daily-digest/dashboard">Manage preferences</a> · <a href="${unsubscribeUrl}">Unsubscribe</a></p>
     </div>
   </div>
 </body>
