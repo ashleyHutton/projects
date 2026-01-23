@@ -54,6 +54,13 @@ module.exports = async (req, res) => {
         
         const userTime = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }));
         const currentHour = userTime.getHours();
+        const currentDay = userTime.getDay(); // 0 = Sunday, 6 = Saturday
+
+        // Skip weekends
+        if (currentDay === 0 || currentDay === 6) {
+          results.skipped++;
+          continue;
+        }
 
         // Only send if it's the right hour (cron runs hourly at :00)
         if (currentHour !== deliveryHour) {
