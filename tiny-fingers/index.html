@@ -5,216 +5,303 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tiny Fingers</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       overflow: hidden;
       height: 100vh;
       width: 100vw;
-      background: #1a1a2e;
+      background: #0d0800;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       cursor: none;
       user-select: none;
       -webkit-user-select: none;
     }
 
-    canvas {
-      display: block;
+    canvas { display: block; }
+
+    /* Mode toggle */
+    #mode-toggle {
+      position: fixed; top: 16px; right: 16px; z-index: 50;
+      background: rgba(255,150,0,0.15); border: 1px solid rgba(255,150,0,0.3);
+      color: #ffb347; font-size: 0.85rem; padding: 8px 16px;
+      border-radius: 20px; cursor: pointer; backdrop-filter: blur(8px);
+      transition: opacity 0.3s; opacity: 0.6;
+    }
+    #mode-toggle:hover { opacity: 1; }
+
+    /* Song picker */
+    #song-picker {
+      position: fixed; top: 16px; left: 16px; z-index: 50;
+      display: flex; align-items: center; gap: 8px;
+      opacity: 0.5; transition: opacity 0.3s;
+    }
+    #song-picker:hover { opacity: 1; }
+    #song-picker button {
+      background: rgba(255,150,0,0.15); border: 1px solid rgba(255,150,0,0.3);
+      color: #ffb347; font-size: 1rem; width: 30px; height: 30px;
+      border-radius: 50%; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+    }
+    #song-info {
+      color: #ffb347; font-size: 0.8rem; line-height: 1.3;
+    }
+    #song-name { font-weight: 700; }
+    #song-composer { opacity: 0.6; font-size: 0.7rem; }
+
+    /* Progress dots */
+    #progress {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      z-index: 50; display: flex; gap: 3px; opacity: 0.3;
+    }
+    .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(255,150,0,0.3); transition: background 0.2s;
+    }
+    .dot.played { background: #ff8c00; }
+    .dot.current { background: #ffb347; box-shadow: 0 0 6px #ffb347; }
+
+    /* Note name bubble */
+    .note-bubble {
+      position: fixed; pointer-events: none; z-index: 12;
+      width: 70px; height: 70px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #ff8c00, #cc5500);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem; font-weight: 900; color: #fff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      animation: noteBubble 1s ease-out forwards;
+    }
+    @keyframes noteBubble {
+      0% { transform: scale(0); opacity: 0; }
+      20% { transform: scale(1.2); opacity: 1; }
+      70% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(0.6) translateY(-40px); opacity: 0; }
     }
 
+    /* Basketball bounce */
+    .basketball {
+      position: fixed; pointer-events: none; z-index: 11;
+      font-size: 3rem;
+      animation: bball 1.5s ease-in forwards;
+    }
+    @keyframes bball {
+      0%   { transform: translateY(0) rotate(0deg) scale(0.3); opacity: 0.5; }
+      10%  { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+      35%  { transform: translateY(-160px) rotate(200deg) scale(1); opacity: 1; }
+      50%  { transform: translateY(0) rotate(360deg) scale(0.95); opacity: 0.9; }
+      65%  { transform: translateY(-60px) rotate(500deg) scale(0.85); opacity: 0.7; }
+      80%  { transform: translateY(0) rotate(640deg) scale(0.75); opacity: 0.4; }
+      100% { transform: translateY(-20px) rotate(720deg) scale(0.5); opacity: 0; }
+    }
+
+    /* Musical note float */
+    .music-note {
+      position: fixed; pointer-events: none; z-index: 8;
+      font-size: 2.5rem;
+      animation: noteFloat 2s ease-out forwards;
+    }
+    @keyframes noteFloat {
+      0% { transform: scale(0) translateY(0); opacity: 1; }
+      30% { transform: scale(1.2) translateY(-40px); opacity: 1; }
+      100% { transform: scale(0.8) translateY(-250px) rotate(20deg); opacity: 0; }
+    }
+
+    /* Letter pop (party mode) */
     .letter-pop {
-      position: fixed;
-      font-size: 8rem;
-      font-weight: 900;
-      pointer-events: none;
-      z-index: 10;
+      position: fixed; font-size: 8rem; font-weight: 900;
+      pointer-events: none; z-index: 10;
       animation: popIn 0.8s ease-out forwards;
     }
-
     @keyframes popIn {
       0% { transform: scale(0) rotate(0deg); opacity: 1; }
       50% { transform: scale(1.3) rotate(15deg); opacity: 1; }
       100% { transform: scale(0.8) rotate(-5deg); opacity: 0; }
     }
 
-    .shape {
-      position: fixed;
-      pointer-events: none;
-      z-index: 5;
-    }
-
-    .circle {
-      border-radius: 50%;
-      animation: floatUp 2s ease-out forwards;
-    }
-
-    .star {
-      animation: spinFloat 2s ease-out forwards;
-    }
-
-    .square {
-      animation: tumble 1.5s ease-out forwards;
-    }
-
-    .heart {
-      animation: heartBeat 1.5s ease-out forwards;
-    }
-
-    @keyframes floatUp {
-      0% { transform: scale(0) translateY(0); opacity: 1; }
-      50% { transform: scale(1.2) translateY(-100px); opacity: 0.8; }
-      100% { transform: scale(0.5) translateY(-300px); opacity: 0; }
-    }
-
-    @keyframes spinFloat {
-      0% { transform: scale(0) rotate(0deg); opacity: 1; }
-      100% { transform: scale(1) rotate(720deg) translateY(-200px); opacity: 0; }
-    }
-
-    @keyframes tumble {
-      0% { transform: scale(0) rotate(0deg); opacity: 1; }
-      100% { transform: scale(1.5) rotate(360deg) translateX(150px) translateY(-100px); opacity: 0; }
-    }
-
-    @keyframes heartBeat {
-      0% { transform: scale(0); opacity: 1; }
-      25% { transform: scale(1.8); opacity: 1; }
-      50% { transform: scale(1.2); opacity: 0.8; }
-      75% { transform: scale(1.6); opacity: 0.5; }
-      100% { transform: scale(0.5); opacity: 0; }
-    }
-
     .sparkle {
-      position: fixed;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 15;
+      position: fixed; width: 6px; height: 6px; border-radius: 50%;
+      pointer-events: none; z-index: 15;
       animation: spark 0.6s ease-out forwards;
     }
-
     @keyframes spark {
       0% { transform: scale(1); opacity: 1; }
       100% { opacity: 0; }
     }
 
     .ripple {
-      position: fixed;
-      border-radius: 50%;
-      border: 3px solid;
-      pointer-events: none;
-      z-index: 4;
+      position: fixed; border-radius: 50%; border: 3px solid;
+      pointer-events: none; z-index: 4;
       animation: rippleOut 1s ease-out forwards;
     }
-
     @keyframes rippleOut {
       0% { width: 0; height: 0; opacity: 1; }
       100% { width: 200px; height: 200px; opacity: 0; }
     }
 
     .trail {
-      position: fixed;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 3;
+      position: fixed; width: 20px; height: 20px; border-radius: 50%;
+      pointer-events: none; z-index: 3;
       animation: trailFade 0.8s ease-out forwards;
     }
-
     @keyframes trailFade {
       0% { transform: scale(1); opacity: 0.7; }
       100% { transform: scale(0); opacity: 0; }
     }
 
-    /* Mode toggle */
-    #mode-toggle {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      z-index: 50;
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: #fff;
-      font-size: 0.85rem;
-      padding: 8px 16px;
-      border-radius: 20px;
-      cursor: pointer;
-      backdrop-filter: blur(8px);
-      transition: opacity 0.3s;
-      opacity: 0.6;
-    }
-    #mode-toggle:hover { opacity: 1; }
-
-    /* Typing mode word display */
+    /* Typing mode */
     #word-display {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-      z-index: 10;
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none; z-index: 10;
     }
-
     .typed-letter {
-      display: inline-block;
-      font-size: 12rem;
-      font-weight: 900;
+      display: inline-block; font-size: 12rem; font-weight: 900;
       animation: typedIn 0.3s ease-out forwards;
       text-shadow: 0 0 40px currentColor, 0 0 80px currentColor;
     }
-
     @keyframes typedIn {
       0% { transform: scale(0) rotate(-10deg); opacity: 0; }
       70% { transform: scale(1.15) rotate(3deg); opacity: 1; }
       100% { transform: scale(1) rotate(0deg); opacity: 1; }
     }
-
     .typed-letter.fading {
       animation: typedOut 1.5s ease-in forwards;
     }
-
     @keyframes typedOut {
       0% { transform: scale(1); opacity: 1; }
       60% { transform: scale(1.05) translateY(-10px); opacity: 0.8; }
       100% { transform: scale(0.5) translateY(-60px); opacity: 0; }
     }
+
+    /* Song complete celebration */
+    .swish {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-size: 5rem; font-weight: 900; color: #ffb347;
+      text-shadow: 0 0 40px #ff8c00, 0 0 80px #ff6600;
+      pointer-events: none; z-index: 30;
+      animation: swishPop 1.5s ease-out forwards;
+    }
+    @keyframes swishPop {
+      0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; }
+      30% { transform: translate(-50%, -50%) scale(1.3) rotate(5deg); opacity: 1; }
+      70% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(0.8) rotate(-3deg); opacity: 0; }
+    }
   </style>
 </head>
 <body>
   <button id="mode-toggle">Party Mode</button>
+  <div id="song-picker">
+    <button id="prev-song">‹</button>
+    <div id="song-info">
+      <div id="song-name"></div>
+      <div id="song-composer"></div>
+    </div>
+    <button id="next-song">›</button>
+  </div>
+  <div id="progress"></div>
   <div id="word-display"></div>
   <canvas id="bg-canvas"></canvas>
 
   <script>
+    // Note frequencies
+    const NF = {
+      'G2':98,'A2':110,'B2':123.47,
+      'C3':130.81,'D3':146.83,'E3':164.81,'F3':174.61,'F#3':185,'G3':196,'A3':220,'Bb3':233.08,'B3':246.94,
+      'C4':261.63,'C#4':277.18,'D4':293.66,'E4':329.63,'F4':349.23,'F#4':370,'G4':392,'A4':440,'B4':493.88
+    };
+
+    const SONGS = [
+      {
+        name: 'Twinkle Twinkle',
+        composer: 'Suzuki Book 1',
+        dur: 0.5,
+        notes: ['D3','D3','A3','A3','B3','B3','A3',
+                'G3','G3','F#3','F#3','E3','E3','D3',
+                'A3','A3','G3','G3','F#3','F#3','E3',
+                'A3','A3','G3','G3','F#3','F#3','E3',
+                'D3','D3','A3','A3','B3','B3','A3',
+                'G3','G3','F#3','F#3','E3','E3','D3']
+      },
+      {
+        name: 'Lightly Row',
+        composer: 'Suzuki Book 1',
+        dur: 0.45,
+        notes: ['F#3','E3','D3','E3','F#3','F#3','F#3',
+                'E3','E3','E3',
+                'F#3','A3','A3',
+                'F#3','E3','D3','E3','F#3','F#3','F#3',
+                'F#3','E3','E3','F#3','E3','D3']
+      },
+      {
+        name: 'French Folk Song',
+        composer: 'Suzuki Book 1',
+        dur: 0.45,
+        notes: ['D3','E3','F#3','D3','E3','F#3','G3','A3',
+                'B3','A3','G3','F#3','E3','F#3','G3',
+                'D3','E3','F#3','D3','E3','F#3','G3','A3',
+                'B3','A3','G3','F#3','E3','D3']
+      },
+      {
+        name: 'Long, Long Ago',
+        composer: 'Suzuki Book 1',
+        dur: 0.5,
+        notes: ['B3','A3','G3','G3','A3','B3','B3','B3',
+                'A3','A3','A3','B3','D4','D4',
+                'B3','A3','G3','G3','A3','B3','B3','B3',
+                'B3','A3','A3','B3','A3','G3']
+      },
+      {
+        name: 'Prelude in G Major',
+        composer: 'Bach Cello Suite No. 1',
+        dur: 0.25,
+        notes: ['G2','D3','B3','A3','B3','D3','B3','D3',
+                'G2','D3','B3','A3','B3','D3','B3','D3',
+                'C3','E3','C4','B3','C4','E3','C4','E3',
+                'C3','E3','C4','B3','C4','E3','C4','E3',
+                'B2','D3','B3','A3','B3','D3','B3','D3',
+                'B2','D3','B3','A3','B3','D3','B3','D3',
+                'A2','C3','A3','G3','A3','C3','A3','C3',
+                'A2','C3','A3','G3','A3','C3','A3','C3']
+      },
+      {
+        name: 'Minuet No. 1',
+        composer: 'Bach Cello Suite No. 1',
+        dur: 0.45,
+        notes: ['G3','D4','C4','B3','A3',
+                'B3','C4','B3','A3','G3','F#3',
+                'G3','A3','B3','G3','A3',
+                'B3','C4','D4','B3',
+                'A3','G3','F#3','E3','F#3','G3','A3',
+                'D3','E3','F#3','G3','A3','B3',
+                'C4','B3','A3','B3','A3','G3']
+      }
+    ];
+
     const COLORS = [
-      '#e94560', '#533483', '#0f3460', '#16213e',
-      '#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3',
-      '#54a0ff', '#5f27cd', '#01a3a4', '#f368e0',
-      '#ff6348', '#2ed573', '#1e90ff', '#ffa502',
-      '#7bed9f', '#70a1ff', '#ff4757', '#eccc68'
+      '#ff8c00','#ff6600','#ffb347','#ffa500','#ff4500',
+      '#ff6b6b','#feca57','#48dbfb','#ff9ff3',
+      '#54a0ff','#2ed573','#ff4757','#eccc68',
+      '#f368e0','#7bed9f','#70a1ff'
     ];
 
-    const EMOJIS = [
-      '🌟', '🎈', '🦄', '🌈', '🎉', '🐱', '🐶', '🦋',
-      '🍎', '🚀', '⭐', '🎸', '🌸', '🐠', '🦊', '🍕',
-      '🎨', '🏀', '🎵', '🌻', '🐸', '🦁', '🍩', '🎪'
-    ];
+    const MUSIC_NOTES = ['🎵','🎶','🎻','🎼'];
 
-    let active = false;
-    let bgHue = 0;
-    let mode = 'party'; // 'party' or 'typing'
+    let mode = 'party';
+    let songIdx = 0;
+    let noteIdx = 0;
+    let bgHue = 25;
+    let audioCtx = null;
     let typingTimeout = null;
-    const wordDisplay = document.getElementById('word-display');
-    const modeToggle = document.getElementById('mode-toggle');
+
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');
+    const wordDisplay = document.getElementById('word-display');
+    const modeToggle = document.getElementById('mode-toggle');
+    const songNameEl = document.getElementById('song-name');
+    const songComposerEl = document.getElementById('song-composer');
+    const progressEl = document.getElementById('progress');
     let particles = [];
 
     function resizeCanvas() {
@@ -224,175 +311,223 @@
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Background particle system
+    // Background particles — warm tones
     class Particle {
-      constructor() {
-        this.reset();
-      }
+      constructor() { this.reset(); }
       reset() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
         this.size = Math.random() * 3 + 1;
         this.speedX = (Math.random() - 0.5) * 0.5;
         this.speedY = (Math.random() - 0.5) * 0.5;
-        this.opacity = Math.random() * 0.5 + 0.1;
+        this.opacity = Math.random() * 0.4 + 0.1;
       }
       update() {
         this.x += this.speedX;
         this.y += this.speedY;
-        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
-          this.reset();
-        }
+        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
       }
       draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${bgHue + this.x * 0.1}, 70%, 70%, ${this.opacity})`;
+        ctx.fillStyle = `hsla(${bgHue + this.x * 0.05}, 80%, 60%, ${this.opacity})`;
         ctx.fill();
       }
     }
-
     for (let i = 0; i < 80; i++) particles.push(new Particle());
 
     function animateBg() {
-      if (!active) { requestAnimationFrame(animateBg); return; }
-      ctx.fillStyle = `hsla(${bgHue}, 30%, 10%, 0.15)`;
+      ctx.fillStyle = `hsla(${bgHue}, 40%, 5%, 0.15)`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       particles.forEach(p => { p.update(); p.draw(); });
       requestAnimationFrame(animateBg);
     }
     animateBg();
 
-    function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-    function randColor() { return COLORS[randInt(0, COLORS.length - 1)]; }
-    function randX() { return randInt(80, window.innerWidth - 80); }
-    function randY() { return randInt(80, window.innerHeight - 80); }
+    // Helpers
+    function ri(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+    function rc() { return COLORS[ri(0, COLORS.length - 1)]; }
+    function rx() { return ri(80, window.innerWidth - 80); }
+    function ry() { return ri(80, window.innerHeight - 80); }
+    function rm(el, ms) { setTimeout(() => el.remove(), ms); }
 
-    function removeAfter(el, ms) {
-      setTimeout(() => el.remove(), ms);
+    // Cello synthesis
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
 
-    // Effect: Big letter/number pop
+    function playCello(noteName) {
+      if (!audioCtx) return;
+      const freq = NF[noteName];
+      if (!freq) return;
+      const song = SONGS[songIdx];
+      const dur = song.dur + 0.15;
+      const now = audioCtx.currentTime;
+
+      // Sawtooth + triangle for warm bowed-string tone
+      const osc1 = audioCtx.createOscillator();
+      osc1.type = 'sawtooth';
+      osc1.frequency.value = freq;
+      const osc2 = audioCtx.createOscillator();
+      osc2.type = 'triangle';
+      osc2.frequency.value = freq * 1.002;
+
+      // Low-pass to soften
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = Math.min(freq * 5, 3000);
+      filter.Q.value = 0.8;
+
+      // Vibrato
+      const lfo = audioCtx.createOscillator();
+      const lfoGain = audioCtx.createGain();
+      lfo.frequency.value = 5.2;
+      lfoGain.gain.value = freq * 0.006;
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc1.frequency);
+      lfoGain.connect(osc2.frequency);
+
+      // Envelope
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.13, now + 0.06);
+      gain.gain.linearRampToValueAtTime(0.09, now + dur * 0.5);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+      osc1.connect(filter); osc2.connect(filter);
+      filter.connect(gain); gain.connect(audioCtx.destination);
+      lfo.start(now); osc1.start(now); osc2.start(now);
+      lfo.stop(now + dur); osc1.stop(now + dur); osc2.stop(now + dur);
+    }
+
+    // Song management
+    function updateSongUI() {
+      const song = SONGS[songIdx];
+      songNameEl.textContent = song.name;
+      songComposerEl.textContent = song.composer;
+      buildProgress();
+    }
+
+    function buildProgress() {
+      const song = SONGS[songIdx];
+      // Show max 40 dots, sampling evenly
+      const total = song.notes.length;
+      const maxDots = Math.min(total, 40);
+      progressEl.innerHTML = '';
+      for (let i = 0; i < maxDots; i++) {
+        const d = document.createElement('div');
+        d.className = 'dot';
+        const mappedIdx = Math.floor(i * total / maxDots);
+        if (mappedIdx < noteIdx) d.classList.add('played');
+        if (mappedIdx === noteIdx) d.classList.add('current');
+        progressEl.appendChild(d);
+      }
+    }
+
+    function advanceNote() {
+      const song = SONGS[songIdx];
+      const noteName = song.notes[noteIdx];
+      playCello(noteName);
+      showNoteBubble(noteName);
+      noteIdx++;
+      if (noteIdx >= song.notes.length) {
+        // Song complete — celebrate and loop
+        noteIdx = 0;
+        celebrateSongEnd();
+      }
+      buildProgress();
+      return noteName;
+    }
+
+    function switchSong(dir) {
+      songIdx = (songIdx + dir + SONGS.length) % SONGS.length;
+      noteIdx = 0;
+      updateSongUI();
+    }
+
+    // Visual effects
+    function showNoteBubble(noteName) {
+      const el = document.createElement('div');
+      el.className = 'note-bubble';
+      el.textContent = noteName.replace(/\d/, '');
+      el.style.left = rx() + 'px';
+      el.style.top = ry() + 'px';
+      document.body.appendChild(el);
+      rm(el, 1000);
+    }
+
+    function spawnBasketball() {
+      const el = document.createElement('div');
+      el.className = 'basketball';
+      el.textContent = '🏀';
+      el.style.left = rx() + 'px';
+      el.style.top = ry() + 'px';
+      el.style.fontSize = ri(30, 70) + 'px';
+      document.body.appendChild(el);
+      rm(el, 1500);
+    }
+
+    function spawnMusicNote() {
+      const el = document.createElement('div');
+      el.className = 'music-note';
+      el.textContent = MUSIC_NOTES[ri(0, MUSIC_NOTES.length - 1)];
+      el.style.left = rx() + 'px';
+      el.style.top = ry() + 'px';
+      el.style.fontSize = ri(30, 60) + 'px';
+      document.body.appendChild(el);
+      rm(el, 2000);
+    }
+
     function showLetter(key) {
       const el = document.createElement('div');
       el.className = 'letter-pop';
-      el.textContent = key.length === 1 ? key.toUpperCase() : '?';
-      el.style.left = randX() + 'px';
-      el.style.top = randY() + 'px';
-      el.style.color = randColor();
-      el.style.textShadow = `0 0 40px ${randColor()}, 0 0 80px ${randColor()}`;
+      el.textContent = key.length === 1 ? key.toUpperCase() : '🏀';
+      el.style.left = rx() + 'px';
+      el.style.top = ry() + 'px';
+      el.style.color = rc();
+      el.style.textShadow = `0 0 40px ${rc()}, 0 0 80px ${rc()}`;
       document.body.appendChild(el);
-      removeAfter(el, 800);
+      rm(el, 800);
     }
 
-    // Effect: Floating shapes
-    function spawnShape() {
-      const types = ['circle', 'square', 'star', 'heart'];
-      const type = types[randInt(0, types.length - 1)];
-      const el = document.createElement('div');
-      el.className = `shape ${type}`;
-      const size = randInt(30, 80);
-      const color = randColor();
-      const x = randX();
-      const y = randY();
-
-      if (type === 'circle') {
-        el.style.width = size + 'px';
-        el.style.height = size + 'px';
-        el.style.background = `radial-gradient(circle, ${color}, ${randColor()})`;
-      } else if (type === 'square') {
-        el.style.width = size + 'px';
-        el.style.height = size + 'px';
-        el.style.background = color;
-        el.style.borderRadius = randInt(0, 15) + 'px';
-      } else if (type === 'star') {
-        el.style.fontSize = size + 'px';
-        el.textContent = '★';
-        el.style.color = color;
-        el.style.filter = `drop-shadow(0 0 10px ${color})`;
-      } else if (type === 'heart') {
-        el.style.fontSize = size + 'px';
-        el.textContent = '❤';
-        el.style.color = color;
-        el.style.filter = `drop-shadow(0 0 15px ${color})`;
-      }
-
-      el.style.left = x + 'px';
-      el.style.top = y + 'px';
-      document.body.appendChild(el);
-      removeAfter(el, 2000);
-    }
-
-    // Effect: Sparkle burst
     function sparkleBurst(cx, cy) {
       for (let i = 0; i < 12; i++) {
         const s = document.createElement('div');
         s.className = 'sparkle';
-        s.style.background = randColor();
+        s.style.background = rc();
         const angle = (Math.PI * 2 * i) / 12;
-        const dist = randInt(40, 120);
-        const endX = cx + Math.cos(angle) * dist;
-        const endY = cy + Math.sin(angle) * dist;
+        const dist = ri(40, 120);
         s.style.left = cx + 'px';
         s.style.top = cy + 'px';
         s.style.transition = 'all 0.6s ease-out';
         document.body.appendChild(s);
         requestAnimationFrame(() => {
-          s.style.left = endX + 'px';
-          s.style.top = endY + 'px';
+          s.style.left = (cx + Math.cos(angle) * dist) + 'px';
+          s.style.top = (cy + Math.sin(angle) * dist) + 'px';
         });
-        removeAfter(s, 600);
+        rm(s, 600);
       }
     }
 
-    // Effect: Ripple ring
     function ripple(x, y) {
       const r = document.createElement('div');
       r.className = 'ripple';
-      r.style.borderColor = randColor();
+      r.style.borderColor = rc();
       r.style.left = x + 'px';
       r.style.top = y + 'px';
       r.style.marginLeft = '-100px';
       r.style.marginTop = '-100px';
       document.body.appendChild(r);
-      removeAfter(r, 1000);
+      rm(r, 1000);
     }
 
-    // Effect: Random emoji
-    function spawnEmoji() {
-      const el = document.createElement('div');
-      el.className = 'letter-pop';
-      el.textContent = EMOJIS[randInt(0, EMOJIS.length - 1)];
-      el.style.left = randX() + 'px';
-      el.style.top = randY() + 'px';
-      el.style.fontSize = randInt(60, 120) + 'px';
-      document.body.appendChild(el);
-      removeAfter(el, 800);
-    }
-
-    // Effect: Color flash
-    function colorFlash() {
-      const flash = document.createElement('div');
-      flash.style.position = 'fixed';
-      flash.style.inset = '0';
-      flash.style.background = randColor();
-      flash.style.opacity = '0.15';
-      flash.style.pointerEvents = 'none';
-      flash.style.zIndex = '2';
-      flash.style.transition = 'opacity 0.5s';
-      document.body.appendChild(flash);
-      requestAnimationFrame(() => { flash.style.opacity = '0'; });
-      removeAfter(flash, 500);
-    }
-
-    // Effect: Confetti burst
     function confetti(cx, cy) {
       for (let i = 0; i < 20; i++) {
         const c = document.createElement('div');
         c.style.position = 'fixed';
-        c.style.width = randInt(6, 12) + 'px';
-        c.style.height = randInt(6, 12) + 'px';
-        c.style.background = randColor();
+        c.style.width = ri(6, 12) + 'px';
+        c.style.height = ri(6, 12) + 'px';
+        c.style.background = rc();
         c.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
         c.style.left = cx + 'px';
         c.style.top = cy + 'px';
@@ -406,58 +541,44 @@
           c.style.left = (cx + dx) + 'px';
           c.style.top = (cy + dy + 400) + 'px';
           c.style.opacity = '0';
-          c.style.transform = `rotate(${randInt(0, 720)}deg)`;
+          c.style.transform = `rotate(${ri(0, 720)}deg)`;
         });
-        removeAfter(c, 1000);
+        rm(c, 1000);
       }
     }
 
-    // Sound effects using Web Audio API
-    let audioCtx = null;
-
-    function initAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function colorFlash() {
+      const f = document.createElement('div');
+      f.style.cssText = `position:fixed;inset:0;background:${rc()};opacity:0.12;pointer-events:none;z-index:2;transition:opacity 0.5s;`;
+      document.body.appendChild(f);
+      requestAnimationFrame(() => { f.style.opacity = '0'; });
+      rm(f, 500);
     }
 
-    function playTone(freq, type, duration) {
-      if (!audioCtx) return;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = type || 'sine';
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (duration || 0.3));
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + (duration || 0.3));
+    function celebrateSongEnd() {
+      // Big swish text
+      const s = document.createElement('div');
+      s.className = 'swish';
+      s.textContent = '🏀 SWISH! 🏀';
+      document.body.appendChild(s);
+      rm(s, 1500);
+      // Burst of basketballs
+      for (let i = 0; i < 8; i++) setTimeout(() => spawnBasketball(), i * 80);
+      confetti(window.innerWidth / 2, window.innerHeight / 2);
     }
 
-    function playRandomNote() {
-      const notes = [262, 294, 330, 349, 392, 440, 494, 523, 587, 659, 698, 784];
-      const types = ['sine', 'triangle', 'square'];
-      playTone(
-        notes[randInt(0, notes.length - 1)],
-        types[randInt(0, types.length - 1)],
-        0.2 + Math.random() * 0.3
-      );
-    }
-
-    // Change background hue with each keypress
     function shiftBackground() {
-      bgHue = (bgHue + randInt(15, 45)) % 360;
+      bgHue = (bgHue + ri(8, 25)) % 360;
     }
 
-    // Typing mode: add letter to persistent word display
+    // Typing mode
     function addTypedLetter(key) {
-      // Handle backspace
       if (key === 'Backspace') {
         const letters = wordDisplay.querySelectorAll('.typed-letter:not(.fading)');
         if (letters.length > 0) letters[letters.length - 1].remove();
         resetTypingTimeout();
         return;
       }
-      // Handle space
       if (key === ' ') {
         const spacer = document.createElement('span');
         spacer.className = 'typed-letter';
@@ -467,13 +588,11 @@
         resetTypingTimeout();
         return;
       }
-      // Only single printable characters
       if (key.length !== 1) return;
-
       const el = document.createElement('span');
       el.className = 'typed-letter';
       el.textContent = key.toUpperCase();
-      el.style.color = randColor();
+      el.style.color = rc();
       wordDisplay.appendChild(el);
       resetTypingTimeout();
     }
@@ -493,101 +612,86 @@
       });
     }
 
-    // Main keypress handler — pick random effects
+    // Key handler
     function onKey(e) {
-      if (!active) return;
-      // Let Escape toggle mode without blocking
       if (e.key === 'Escape') return;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') return;
       e.preventDefault();
 
-      playRandomNote();
+      // Advance the song and play cello
+      advanceNote();
       shiftBackground();
 
       if (mode === 'typing') {
         addTypedLetter(e.key);
-        // Light sparkle on each letter
-        sparkleBurst(window.innerWidth / 2 + randInt(-100, 100), window.innerHeight / 2 + randInt(-50, 50));
+        spawnBasketball();
+        sparkleBurst(window.innerWidth / 2 + ri(-100, 100), window.innerHeight / 2 + ri(-50, 50));
         return;
       }
 
-      const cx = randX();
-      const cy = randY();
-
-      // Party mode: show the letter and random effects
+      // Party mode
+      const cx = rx(), cy = ry();
       showLetter(e.key);
+      spawnBasketball();
+      spawnMusicNote();
 
-      // Randomly pick 1-3 additional effects
-      const effects = [spawnShape, spawnEmoji, colorFlash,
-        () => sparkleBurst(cx, cy),
-        () => ripple(cx, cy),
-        () => confetti(cx, cy)];
-      const count = randInt(1, 3);
-      for (let i = 0; i < count; i++) {
-        effects[randInt(0, effects.length - 1)]();
-      }
+      const effects = [() => spawnBasketball(), () => spawnMusicNote(), colorFlash,
+        () => sparkleBurst(cx, cy), () => ripple(cx, cy), () => confetti(cx, cy)];
+      const count = ri(1, 2);
+      for (let i = 0; i < count; i++) effects[ri(0, effects.length - 1)]();
     }
 
-    // Mouse/touch trail
+    // Mouse
     function onMouseMove(e) {
-      if (!active) return;
       const t = document.createElement('div');
       t.className = 'trail';
       t.style.left = (e.clientX - 10) + 'px';
       t.style.top = (e.clientY - 10) + 'px';
       t.style.background = `hsl(${bgHue + Math.random() * 60}, 80%, 60%)`;
       document.body.appendChild(t);
-      removeAfter(t, 800);
+      rm(t, 800);
     }
 
     function onClick(e) {
-      if (!active) return;
+      if (e.target.closest('#song-picker, #mode-toggle')) return;
+      advanceNote();
       sparkleBurst(e.clientX, e.clientY);
       confetti(e.clientX, e.clientY);
-      ripple(e.clientX, e.clientY);
-      spawnEmoji();
-      playRandomNote();
+      spawnBasketball();
+      spawnMusicNote();
       shiftBackground();
     }
 
-    // Start immediately — init audio on first interaction
-    active = true;
-    document.addEventListener('keydown', () => initAudio(), { once: true });
-    document.addEventListener('click', () => initAudio(), { once: true });
-    ctx.fillStyle = `hsl(${bgHue}, 30%, 10%)`;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
     // Mode toggle
     function toggleMode() {
-      if (mode === 'party') {
-        mode = 'typing';
-        modeToggle.textContent = 'Typing Mode';
-        wordDisplay.innerHTML = '';
-        clearTimeout(typingTimeout);
-      } else {
-        mode = 'party';
-        modeToggle.textContent = 'Party Mode';
-        wordDisplay.innerHTML = '';
-        clearTimeout(typingTimeout);
-      }
+      mode = mode === 'party' ? 'typing' : 'party';
+      modeToggle.textContent = mode === 'party' ? 'Party Mode' : 'Typing Mode';
+      wordDisplay.innerHTML = '';
+      clearTimeout(typingTimeout);
     }
 
-    modeToggle.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMode();
+    modeToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleMode(); });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { toggleMode(); return; }
+      if (e.key === 'ArrowLeft') { switchSong(-1); return; }
+      if (e.key === 'ArrowRight') { switchSong(1); return; }
     });
 
-    // Escape key toggles mode
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') toggleMode();
-    });
+    document.getElementById('prev-song').addEventListener('click', (e) => { e.stopPropagation(); switchSong(-1); });
+    document.getElementById('next-song').addEventListener('click', (e) => { e.stopPropagation(); switchSong(1); });
+
+    // Init
+    document.addEventListener('keydown', () => initAudio(), { once: true });
+    document.addEventListener('click', () => initAudio(), { once: true });
+    updateSongUI();
 
     document.addEventListener('keydown', onKey);
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('click', onClick);
 
-    // Prevent all default browser shortcuts while playing
     document.addEventListener('keydown', (e) => {
-      if (active && e.key !== 'Escape') e.preventDefault();
+      if (e.key !== 'Escape' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') e.preventDefault();
     }, { capture: true });
   </script>
 </body>
