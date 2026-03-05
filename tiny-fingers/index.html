@@ -118,6 +118,27 @@
       100% { transform: scale(0.8) rotate(-5deg); opacity: 0; }
     }
 
+    @keyframes floatUp {
+      0% { transform: scale(0) translateY(0); opacity: 1; }
+      50% { transform: scale(1.2) translateY(-100px); opacity: 0.8; }
+      100% { transform: scale(0.5) translateY(-300px); opacity: 0; }
+    }
+    @keyframes spinFloat {
+      0% { transform: scale(0) rotate(0deg); opacity: 1; }
+      100% { transform: scale(1) rotate(720deg) translateY(-200px); opacity: 0; }
+    }
+    @keyframes tumble {
+      0% { transform: scale(0) rotate(0deg); opacity: 1; }
+      100% { transform: scale(1.5) rotate(360deg) translateX(150px) translateY(-100px); opacity: 0; }
+    }
+    @keyframes heartBeat {
+      0% { transform: scale(0); opacity: 1; }
+      25% { transform: scale(1.8); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.8; }
+      75% { transform: scale(1.6); opacity: 0.5; }
+      100% { transform: scale(0.5); opacity: 0; }
+    }
+
     .sparkle {
       position: fixed; width: 6px; height: 6px; border-radius: 50%;
       pointer-events: none; z-index: 15;
@@ -276,6 +297,40 @@
                 'A3','G3','F#3','E3','F#3','G3','A3',
                 'D3','E3','F#3','G3','A3','B3',
                 'C4','B3','A3','B3','A3','G3']
+      },
+      {
+        name: 'Minuet No. 2',
+        composer: 'Bach Cello Suite No. 1',
+        dur: 0.45,
+        notes: ['G3','A3','B3','C4','D4',
+                'E4','D4','C4','B3','A3',
+                'B3','C4','D4','G3','A3','B3',
+                'C4','B3','A3','G3','F#3',
+                'G3','A3','B3','A3','G3','F#3',
+                'E3','F#3','G3','A3','B3','A3',
+                'G3','F#3','E3','D3','G3']
+      },
+      {
+        name: 'Sarabande',
+        composer: 'Bach Cello Suite No. 1',
+        dur: 0.6,
+        notes: ['G3','A3','B3','D4',
+                'C4','B3','A3','G3',
+                'F#3','G3','A3','D3',
+                'G3','A3','B3','C4','D4',
+                'E4','D4','C4','B3','A3','G3',
+                'A3','B3','C4','B3','A3','G3','F#3','G3']
+      },
+      {
+        name: 'Gigue',
+        composer: 'Bach Cello Suite No. 1',
+        dur: 0.3,
+        notes: ['G3','B3','D4','G4','D4','B3',
+                'A3','C4','E4','A3','E4','C4',
+                'B3','D4','G4','D4','B3','G3',
+                'A3','F#3','D3','A3','D4','F#3',
+                'G3','B3','D4','G4','F#4','E4',
+                'D4','C4','B3','A3','G3','F#3','G3']
       }
     ];
 
@@ -286,8 +341,15 @@
       '#f368e0','#7bed9f','#70a1ff'
     ];
 
+    const PARTY_EMOJIS = [
+      '🌟','🎈','🦄','🌈','🎉','🐱','🐶','🦋',
+      '🍎','🚀','⭐','🎸','🌸','🐠','🦊','🍕',
+      '🎨','🏀','🎵','🌻','🐸','🦁','🍩','🎪'
+    ];
+
     const MUSIC_NOTES = ['🎵','🎶','🎻','🎼'];
 
+    const MODES = ['party', 'cello', 'typing'];
     let mode = 'party';
     let songIdx = 0;
     let noteIdx = 0;
@@ -398,6 +460,69 @@
       filter.connect(gain); gain.connect(audioCtx.destination);
       lfo.start(now); osc1.start(now); osc2.start(now);
       lfo.stop(now + dur); osc1.stop(now + dur); osc2.stop(now + dur);
+    }
+
+    // Party mode random sound
+    function playRandomNote() {
+      if (!audioCtx) return;
+      const notes = [262, 294, 330, 349, 392, 440, 494, 523, 587, 659, 698, 784];
+      const types = ['sine', 'triangle', 'square'];
+      const freq = notes[ri(0, notes.length - 1)];
+      const type = types[ri(0, types.length - 1)];
+      const dur = 0.2 + Math.random() * 0.3;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + dur);
+    }
+
+    function spawnPartyEmoji() {
+      const el = document.createElement('div');
+      el.className = 'letter-pop';
+      el.textContent = PARTY_EMOJIS[ri(0, PARTY_EMOJIS.length - 1)];
+      el.style.left = rx() + 'px';
+      el.style.top = ry() + 'px';
+      el.style.fontSize = ri(60, 120) + 'px';
+      document.body.appendChild(el);
+      rm(el, 800);
+    }
+
+    // Floating shapes (party mode)
+    function spawnShape() {
+      const types = ['circle', 'square', 'star', 'heart'];
+      const type = types[ri(0, types.length - 1)];
+      const el = document.createElement('div');
+      el.className = `shape ${type}`;
+      const size = ri(30, 80);
+      const color = rc();
+      if (type === 'circle') {
+        el.style.width = size + 'px'; el.style.height = size + 'px';
+        el.style.background = `radial-gradient(circle, ${color}, ${rc()})`;
+        el.style.borderRadius = '50%';
+        el.style.animation = 'floatUp 2s ease-out forwards';
+      } else if (type === 'square') {
+        el.style.width = size + 'px'; el.style.height = size + 'px';
+        el.style.background = color; el.style.borderRadius = ri(0, 15) + 'px';
+        el.style.animation = 'tumble 1.5s ease-out forwards';
+      } else if (type === 'star') {
+        el.style.fontSize = size + 'px'; el.textContent = '\u2605';
+        el.style.color = color; el.style.filter = `drop-shadow(0 0 10px ${color})`;
+        el.style.animation = 'spinFloat 2s ease-out forwards';
+      } else {
+        el.style.fontSize = size + 'px'; el.textContent = '\u2764';
+        el.style.color = color; el.style.filter = `drop-shadow(0 0 15px ${color})`;
+        el.style.animation = 'heartBeat 1.5s ease-out forwards';
+      }
+      el.style.position = 'fixed'; el.style.pointerEvents = 'none'; el.style.zIndex = '5';
+      el.style.left = rx() + 'px'; el.style.top = ry() + 'px';
+      document.body.appendChild(el);
+      rm(el, 2000);
     }
 
     // Song management
@@ -617,28 +742,41 @@
       if (e.key === 'Escape') return;
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') return;
       e.preventDefault();
-
-      // Advance the song and play cello
-      advanceNote();
       shiftBackground();
 
+      if (mode === 'party') {
+        // Original party mode — random sounds, shapes, emojis, chaos
+        playRandomNote();
+        const cx = rx(), cy = ry();
+        showLetter(e.key);
+        const effects = [spawnShape, spawnPartyEmoji, colorFlash,
+          () => sparkleBurst(cx, cy), () => ripple(cx, cy), () => confetti(cx, cy)];
+        const count = ri(1, 3);
+        for (let i = 0; i < count; i++) effects[ri(0, effects.length - 1)]();
+        return;
+      }
+
+      if (mode === 'cello') {
+        // Cello mode — play song notes, basketballs, music notes
+        advanceNote();
+        const cx = rx(), cy = ry();
+        showLetter(e.key);
+        spawnBasketball();
+        spawnMusicNote();
+        const effects = [() => spawnBasketball(), () => spawnMusicNote(), colorFlash,
+          () => sparkleBurst(cx, cy), () => ripple(cx, cy), () => confetti(cx, cy)];
+        const count = ri(1, 2);
+        for (let i = 0; i < count; i++) effects[ri(0, effects.length - 1)]();
+        return;
+      }
+
       if (mode === 'typing') {
+        advanceNote();
         addTypedLetter(e.key);
         spawnBasketball();
         sparkleBurst(window.innerWidth / 2 + ri(-100, 100), window.innerHeight / 2 + ri(-50, 50));
         return;
       }
-
-      // Party mode
-      const cx = rx(), cy = ry();
-      showLetter(e.key);
-      spawnBasketball();
-      spawnMusicNote();
-
-      const effects = [() => spawnBasketball(), () => spawnMusicNote(), colorFlash,
-        () => sparkleBurst(cx, cy), () => ripple(cx, cy), () => confetti(cx, cy)];
-      const count = ri(1, 2);
-      for (let i = 0; i < count; i++) effects[ri(0, effects.length - 1)]();
     }
 
     // Mouse
@@ -654,20 +792,37 @@
 
     function onClick(e) {
       if (e.target.closest('#song-picker, #mode-toggle')) return;
-      advanceNote();
-      sparkleBurst(e.clientX, e.clientY);
-      confetti(e.clientX, e.clientY);
-      spawnBasketball();
-      spawnMusicNote();
       shiftBackground();
+      if (mode === 'party') {
+        playRandomNote();
+        sparkleBurst(e.clientX, e.clientY);
+        confetti(e.clientX, e.clientY);
+        spawnPartyEmoji();
+      } else {
+        advanceNote();
+        sparkleBurst(e.clientX, e.clientY);
+        confetti(e.clientX, e.clientY);
+        spawnBasketball();
+        spawnMusicNote();
+      }
     }
 
-    // Mode toggle
+    // Mode toggle — cycles: party -> cello -> typing
+    const MODE_LABELS = { party: 'Party Mode', cello: 'Cello Mode', typing: 'Typing Mode' };
+
+    function updateModeUI() {
+      modeToggle.textContent = MODE_LABELS[mode];
+      const showCello = mode === 'cello' || mode === 'typing';
+      document.getElementById('song-picker').style.display = showCello ? 'flex' : 'none';
+      progressEl.style.display = showCello ? 'flex' : 'none';
+    }
+
     function toggleMode() {
-      mode = mode === 'party' ? 'typing' : 'party';
-      modeToggle.textContent = mode === 'party' ? 'Party Mode' : 'Typing Mode';
+      const idx = MODES.indexOf(mode);
+      mode = MODES[(idx + 1) % MODES.length];
       wordDisplay.innerHTML = '';
       clearTimeout(typingTimeout);
+      updateModeUI();
     }
 
     modeToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleMode(); });
@@ -685,6 +840,7 @@
     document.addEventListener('keydown', () => initAudio(), { once: true });
     document.addEventListener('click', () => initAudio(), { once: true });
     updateSongUI();
+    updateModeUI();
 
     document.addEventListener('keydown', onKey);
     document.addEventListener('mousemove', onMouseMove);
