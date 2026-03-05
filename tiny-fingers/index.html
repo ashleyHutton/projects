@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiny Fingers</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      background: #1a1a2e;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      cursor: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    .letter-pop {
+      position: fixed;
+      font-size: 8rem;
+      font-weight: 900;
+      pointer-events: none;
+      z-index: 10;
+      animation: popIn 0.8s ease-out forwards;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0) rotate(0deg); opacity: 1; }
+      50% { transform: scale(1.3) rotate(15deg); opacity: 1; }
+      100% { transform: scale(0.8) rotate(-5deg); opacity: 0; }
+    }
+
+    .shape {
+      position: fixed;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .circle {
+      border-radius: 50%;
+      animation: floatUp 2s ease-out forwards;
+    }
+
+    .star {
+      animation: spinFloat 2s ease-out forwards;
+    }
+
+    .square {
+      animation: tumble 1.5s ease-out forwards;
+    }
+
+    .heart {
+      animation: heartBeat 1.5s ease-out forwards;
+    }
+
+    @keyframes floatUp {
+      0% { transform: scale(0) translateY(0); opacity: 1; }
+      50% { transform: scale(1.2) translateY(-100px); opacity: 0.8; }
+      100% { transform: scale(0.5) translateY(-300px); opacity: 0; }
+    }
+
+    @keyframes spinFloat {
+      0% { transform: scale(0) rotate(0deg); opacity: 1; }
+      100% { transform: scale(1) rotate(720deg) translateY(-200px); opacity: 0; }
+    }
+
+    @keyframes tumble {
+      0% { transform: scale(0) rotate(0deg); opacity: 1; }
+      100% { transform: scale(1.5) rotate(360deg) translateX(150px) translateY(-100px); opacity: 0; }
+    }
+
+    @keyframes heartBeat {
+      0% { transform: scale(0); opacity: 1; }
+      25% { transform: scale(1.8); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.8; }
+      75% { transform: scale(1.6); opacity: 0.5; }
+      100% { transform: scale(0.5); opacity: 0; }
+    }
+
+    .sparkle {
+      position: fixed;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 15;
+      animation: spark 0.6s ease-out forwards;
+    }
+
+    @keyframes spark {
+      0% { transform: scale(1); opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    .ripple {
+      position: fixed;
+      border-radius: 50%;
+      border: 3px solid;
+      pointer-events: none;
+      z-index: 4;
+      animation: rippleOut 1s ease-out forwards;
+    }
+
+    @keyframes rippleOut {
+      0% { width: 0; height: 0; opacity: 1; }
+      100% { width: 200px; height: 200px; opacity: 0; }
+    }
+
+    .trail {
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 3;
+      animation: trailFade 0.8s ease-out forwards;
+    }
+
+    @keyframes trailFade {
+      0% { transform: scale(1); opacity: 0.7; }
+      100% { transform: scale(0); opacity: 0; }
+    }
+
+    /* Mode toggle */
+    #mode-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 50;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      font-size: 0.85rem;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: opacity 0.3s;
+      opacity: 0.6;
+    }
+    #mode-toggle:hover { opacity: 1; }
+
+    /* Typing mode word display */
+    #word-display {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .typed-letter {
+      display: inline-block;
+      font-size: 12rem;
+      font-weight: 900;
+      animation: typedIn 0.3s ease-out forwards;
+      text-shadow: 0 0 40px currentColor, 0 0 80px currentColor;
+    }
+
+    @keyframes typedIn {
+      0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+      70% { transform: scale(1.15) rotate(3deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    .typed-letter.fading {
+      animation: typedOut 1.5s ease-in forwards;
+    }
+
+    @keyframes typedOut {
+      0% { transform: scale(1); opacity: 1; }
+      60% { transform: scale(1.05) translateY(-10px); opacity: 0.8; }
+      100% { transform: scale(0.5) translateY(-60px); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <button id="mode-toggle">Party Mode</button>
+  <div id="word-display"></div>
+  <canvas id="bg-canvas"></canvas>
+
+  <script>
+    const COLORS = [
+      '#e94560', '#533483', '#0f3460', '#16213e',
+      '#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3',
+      '#54a0ff', '#5f27cd', '#01a3a4', '#f368e0',
+      '#ff6348', '#2ed573', '#1e90ff', '#ffa502',
+      '#7bed9f', '#70a1ff', '#ff4757', '#eccc68'
+    ];
+
+    const EMOJIS = [
+      '🌟', '🎈', '🦄', '🌈', '🎉', '🐱', '🐶', '🦋',
+      '🍎', '🚀', '⭐', '🎸', '🌸', '🐠', '🦊', '🍕',
+      '🎨', '🏀', '🎵', '🌻', '🐸', '🦁', '🍩', '🎪'
+    ];
+
+    let active = false;
+    let bgHue = 0;
+    let mode = 'party'; // 'party' or 'typing'
+    let typingTimeout = null;
+    const wordDisplay = document.getElementById('word-display');
+    const modeToggle = document.getElementById('mode-toggle');
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Background particle system
+    class Particle {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 3 + 1;
+        this.speedX = (Math.random() - 0.5) * 0.5;
+        this.speedY = (Math.random() - 0.5) * 0.5;
+        this.opacity = Math.random() * 0.5 + 0.1;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+          this.reset();
+        }
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${bgHue + this.x * 0.1}, 70%, 70%, ${this.opacity})`;
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+    function animateBg() {
+      if (!active) { requestAnimationFrame(animateBg); return; }
+      ctx.fillStyle = `hsla(${bgHue}, 30%, 10%, 0.15)`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(animateBg);
+    }
+    animateBg();
+
+    function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function randColor() { return COLORS[randInt(0, COLORS.length - 1)]; }
+    function randX() { return randInt(80, window.innerWidth - 80); }
+    function randY() { return randInt(80, window.innerHeight - 80); }
+
+    function removeAfter(el, ms) {
+      setTimeout(() => el.remove(), ms);
+    }
+
+    // Effect: Big letter/number pop
+    function showLetter(key) {
+      const el = document.createElement('div');
+      el.className = 'letter-pop';
+      el.textContent = key.length === 1 ? key.toUpperCase() : '?';
+      el.style.left = randX() + 'px';
+      el.style.top = randY() + 'px';
+      el.style.color = randColor();
+      el.style.textShadow = `0 0 40px ${randColor()}, 0 0 80px ${randColor()}`;
+      document.body.appendChild(el);
+      removeAfter(el, 800);
+    }
+
+    // Effect: Floating shapes
+    function spawnShape() {
+      const types = ['circle', 'square', 'star', 'heart'];
+      const type = types[randInt(0, types.length - 1)];
+      const el = document.createElement('div');
+      el.className = `shape ${type}`;
+      const size = randInt(30, 80);
+      const color = randColor();
+      const x = randX();
+      const y = randY();
+
+      if (type === 'circle') {
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.background = `radial-gradient(circle, ${color}, ${randColor()})`;
+      } else if (type === 'square') {
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.background = color;
+        el.style.borderRadius = randInt(0, 15) + 'px';
+      } else if (type === 'star') {
+        el.style.fontSize = size + 'px';
+        el.textContent = '★';
+        el.style.color = color;
+        el.style.filter = `drop-shadow(0 0 10px ${color})`;
+      } else if (type === 'heart') {
+        el.style.fontSize = size + 'px';
+        el.textContent = '❤';
+        el.style.color = color;
+        el.style.filter = `drop-shadow(0 0 15px ${color})`;
+      }
+
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      document.body.appendChild(el);
+      removeAfter(el, 2000);
+    }
+
+    // Effect: Sparkle burst
+    function sparkleBurst(cx, cy) {
+      for (let i = 0; i < 12; i++) {
+        const s = document.createElement('div');
+        s.className = 'sparkle';
+        s.style.background = randColor();
+        const angle = (Math.PI * 2 * i) / 12;
+        const dist = randInt(40, 120);
+        const endX = cx + Math.cos(angle) * dist;
+        const endY = cy + Math.sin(angle) * dist;
+        s.style.left = cx + 'px';
+        s.style.top = cy + 'px';
+        s.style.transition = 'all 0.6s ease-out';
+        document.body.appendChild(s);
+        requestAnimationFrame(() => {
+          s.style.left = endX + 'px';
+          s.style.top = endY + 'px';
+        });
+        removeAfter(s, 600);
+      }
+    }
+
+    // Effect: Ripple ring
+    function ripple(x, y) {
+      const r = document.createElement('div');
+      r.className = 'ripple';
+      r.style.borderColor = randColor();
+      r.style.left = x + 'px';
+      r.style.top = y + 'px';
+      r.style.marginLeft = '-100px';
+      r.style.marginTop = '-100px';
+      document.body.appendChild(r);
+      removeAfter(r, 1000);
+    }
+
+    // Effect: Random emoji
+    function spawnEmoji() {
+      const el = document.createElement('div');
+      el.className = 'letter-pop';
+      el.textContent = EMOJIS[randInt(0, EMOJIS.length - 1)];
+      el.style.left = randX() + 'px';
+      el.style.top = randY() + 'px';
+      el.style.fontSize = randInt(60, 120) + 'px';
+      document.body.appendChild(el);
+      removeAfter(el, 800);
+    }
+
+    // Effect: Color flash
+    function colorFlash() {
+      const flash = document.createElement('div');
+      flash.style.position = 'fixed';
+      flash.style.inset = '0';
+      flash.style.background = randColor();
+      flash.style.opacity = '0.15';
+      flash.style.pointerEvents = 'none';
+      flash.style.zIndex = '2';
+      flash.style.transition = 'opacity 0.5s';
+      document.body.appendChild(flash);
+      requestAnimationFrame(() => { flash.style.opacity = '0'; });
+      removeAfter(flash, 500);
+    }
+
+    // Effect: Confetti burst
+    function confetti(cx, cy) {
+      for (let i = 0; i < 20; i++) {
+        const c = document.createElement('div');
+        c.style.position = 'fixed';
+        c.style.width = randInt(6, 12) + 'px';
+        c.style.height = randInt(6, 12) + 'px';
+        c.style.background = randColor();
+        c.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        c.style.left = cx + 'px';
+        c.style.top = cy + 'px';
+        c.style.pointerEvents = 'none';
+        c.style.zIndex = '20';
+        c.style.transition = 'all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        document.body.appendChild(c);
+        const dx = (Math.random() - 0.5) * 400;
+        const dy = Math.random() * -300 - 50;
+        requestAnimationFrame(() => {
+          c.style.left = (cx + dx) + 'px';
+          c.style.top = (cy + dy + 400) + 'px';
+          c.style.opacity = '0';
+          c.style.transform = `rotate(${randInt(0, 720)}deg)`;
+        });
+        removeAfter(c, 1000);
+      }
+    }
+
+    // Sound effects using Web Audio API
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playTone(freq, type, duration) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (duration || 0.3));
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + (duration || 0.3));
+    }
+
+    function playRandomNote() {
+      const notes = [262, 294, 330, 349, 392, 440, 494, 523, 587, 659, 698, 784];
+      const types = ['sine', 'triangle', 'square'];
+      playTone(
+        notes[randInt(0, notes.length - 1)],
+        types[randInt(0, types.length - 1)],
+        0.2 + Math.random() * 0.3
+      );
+    }
+
+    // Change background hue with each keypress
+    function shiftBackground() {
+      bgHue = (bgHue + randInt(15, 45)) % 360;
+    }
+
+    // Typing mode: add letter to persistent word display
+    function addTypedLetter(key) {
+      // Handle backspace
+      if (key === 'Backspace') {
+        const letters = wordDisplay.querySelectorAll('.typed-letter:not(.fading)');
+        if (letters.length > 0) letters[letters.length - 1].remove();
+        resetTypingTimeout();
+        return;
+      }
+      // Handle space
+      if (key === ' ') {
+        const spacer = document.createElement('span');
+        spacer.className = 'typed-letter';
+        spacer.innerHTML = '&nbsp;';
+        spacer.style.fontSize = '6rem';
+        wordDisplay.appendChild(spacer);
+        resetTypingTimeout();
+        return;
+      }
+      // Only single printable characters
+      if (key.length !== 1) return;
+
+      const el = document.createElement('span');
+      el.className = 'typed-letter';
+      el.textContent = key.toUpperCase();
+      el.style.color = randColor();
+      wordDisplay.appendChild(el);
+      resetTypingTimeout();
+    }
+
+    function resetTypingTimeout() {
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(fadeOutWord, 2000);
+    }
+
+    function fadeOutWord() {
+      const letters = wordDisplay.querySelectorAll('.typed-letter:not(.fading)');
+      letters.forEach((el, i) => {
+        setTimeout(() => {
+          el.classList.add('fading');
+          setTimeout(() => el.remove(), 1500);
+        }, i * 80);
+      });
+    }
+
+    // Main keypress handler — pick random effects
+    function onKey(e) {
+      if (!active) return;
+      // Let Escape toggle mode without blocking
+      if (e.key === 'Escape') return;
+      e.preventDefault();
+
+      playRandomNote();
+      shiftBackground();
+
+      if (mode === 'typing') {
+        addTypedLetter(e.key);
+        // Light sparkle on each letter
+        sparkleBurst(window.innerWidth / 2 + randInt(-100, 100), window.innerHeight / 2 + randInt(-50, 50));
+        return;
+      }
+
+      const cx = randX();
+      const cy = randY();
+
+      // Party mode: show the letter and random effects
+      showLetter(e.key);
+
+      // Randomly pick 1-3 additional effects
+      const effects = [spawnShape, spawnEmoji, colorFlash,
+        () => sparkleBurst(cx, cy),
+        () => ripple(cx, cy),
+        () => confetti(cx, cy)];
+      const count = randInt(1, 3);
+      for (let i = 0; i < count; i++) {
+        effects[randInt(0, effects.length - 1)]();
+      }
+    }
+
+    // Mouse/touch trail
+    function onMouseMove(e) {
+      if (!active) return;
+      const t = document.createElement('div');
+      t.className = 'trail';
+      t.style.left = (e.clientX - 10) + 'px';
+      t.style.top = (e.clientY - 10) + 'px';
+      t.style.background = `hsl(${bgHue + Math.random() * 60}, 80%, 60%)`;
+      document.body.appendChild(t);
+      removeAfter(t, 800);
+    }
+
+    function onClick(e) {
+      if (!active) return;
+      sparkleBurst(e.clientX, e.clientY);
+      confetti(e.clientX, e.clientY);
+      ripple(e.clientX, e.clientY);
+      spawnEmoji();
+      playRandomNote();
+      shiftBackground();
+    }
+
+    // Start immediately — init audio on first interaction
+    active = true;
+    document.addEventListener('keydown', () => initAudio(), { once: true });
+    document.addEventListener('click', () => initAudio(), { once: true });
+    ctx.fillStyle = `hsl(${bgHue}, 30%, 10%)`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Mode toggle
+    function toggleMode() {
+      if (mode === 'party') {
+        mode = 'typing';
+        modeToggle.textContent = 'Typing Mode';
+        wordDisplay.innerHTML = '';
+        clearTimeout(typingTimeout);
+      } else {
+        mode = 'party';
+        modeToggle.textContent = 'Party Mode';
+        wordDisplay.innerHTML = '';
+        clearTimeout(typingTimeout);
+      }
+    }
+
+    modeToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMode();
+    });
+
+    // Escape key toggles mode
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') toggleMode();
+    });
+
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('click', onClick);
+
+    // Prevent all default browser shortcuts while playing
+    document.addEventListener('keydown', (e) => {
+      if (active && e.key !== 'Escape') e.preventDefault();
+    }, { capture: true });
+  </script>
+</body>
+</html>

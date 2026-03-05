@@ -21,6 +21,10 @@
       "use": "@vercel/static"
     },
     {
+      "src": "tiny-fingers/**",
+      "use": "@vercel/static"
+    },
+    {
       "src": "daily-digest/public/**",
       "use": "@vercel/static"
     },
@@ -30,6 +34,10 @@
     }
   ],
   "routes": [
+    {
+      "src": "/tiny-fingers/?$",
+      "dest": "/tiny-fingers/index.html"
+    },
     {
       "src": "/project-roulette/?$",
       "dest": "/project-roulette/index.html"
