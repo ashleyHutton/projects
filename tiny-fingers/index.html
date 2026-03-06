@@ -792,17 +792,17 @@
     function onClick(e) {
       if (e.target.closest('#song-picker, #mode-toggle')) return;
       shiftBackground();
-      if (mode === 'party') {
-        playRandomNote();
-        sparkleBurst(e.clientX, e.clientY);
-        confetti(e.clientX, e.clientY);
-        spawnPartyEmoji();
-      } else {
+      if (mode === 'cello') {
         advanceNote();
         sparkleBurst(e.clientX, e.clientY);
         confetti(e.clientX, e.clientY);
         spawnBasketball();
         spawnMusicNote();
+      } else {
+        playRandomNote();
+        sparkleBurst(e.clientX, e.clientY);
+        confetti(e.clientX, e.clientY);
+        spawnPartyEmoji();
       }
     }
 
@@ -811,7 +811,7 @@
 
     function updateModeUI() {
       modeToggle.textContent = MODE_LABELS[mode];
-      const showCello = mode === 'cello' || mode === 'typing';
+      const showCello = mode === 'cello';
       document.getElementById('song-picker').style.display = showCello ? 'flex' : 'none';
       progressEl.style.display = showCello ? 'flex' : 'none';
     }
