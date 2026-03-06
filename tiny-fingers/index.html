@@ -771,9 +771,8 @@
       }
 
       if (mode === 'typing') {
-        advanceNote();
+        playRandomNote();
         addTypedLetter(e.key);
-        spawnBasketball();
         sparkleBurst(window.innerWidth / 2 + ri(-100, 100), window.innerHeight / 2 + ri(-50, 50));
         return;
       }
