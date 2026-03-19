@@ -25,6 +25,10 @@
       "use": "@vercel/static"
     },
     {
+      "src": "activity/**",
+      "use": "@vercel/static"
+    },
+    {
       "src": "daily-digest/public/**",
       "use": "@vercel/static"
     },
@@ -34,6 +38,10 @@
     }
   ],
   "routes": [
+    {
+      "src": "/activity/?$",
+      "dest": "/activity/index.html"
+    },
     {
       "src": "/tiny-fingers/?$",
       "dest": "/tiny-fingers/index.html"

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Activity — Ashley Weinaug</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #0d1117;
+      --bg-card: #161b22;
+      --border-color: #30363d;
+      --text-primary: #c9d1d9;
+      --text-secondary: #8b949e;
+      --accent: #58a6ff;
+      --blue: #58a6ff;
+      --green: #3fb950;
+      --purple: #bc8cff;
+      --orange: #d29922;
+      --pink: #f778ba;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .back-link {
+      display: inline-block;
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+      color: var(--text-secondary);
+    }
+    .back-link:hover { color: var(--accent); }
+
+    /* Header */
+    .header { margin-bottom: 3rem; }
+
+    .period-badge {
+      display: inline-block;
+      background: rgba(88, 166, 255, 0.1);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      border-radius: 20px;
+      padding: 0.3rem 1rem;
+      font-size: 0.85rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    .header h1 {
+      font-size: 2.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .header .tagline {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+    }
+
+    .header .intro {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-top: 1rem;
+      line-height: 1.7;
+    }
+
+    /* Section titles */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 1.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    section { margin-bottom: 3rem; }
+
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    .stat-sub {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      opacity: 0.7;
+      margin-top: 0.15rem;
+    }
+
+    /* Themes */
+    .themes-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .theme-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      border-left: 3px solid var(--accent);
+    }
+
+    .theme-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.35rem;
+    }
+
+    .theme-desc {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    /* Highlights */
+    .highlights-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .highlights-group:last-child { margin-bottom: 0; }
+
+    .highlights-group h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.6rem;
+    }
+
+    .highlight-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .highlight-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .highlight-item.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .highlight-item strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      opacity: 0;
+      animation: fadeInUp 0.5s ease forwards;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat-number { font-size: 1.6rem; }
+
+      .header h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">&larr; ashleyweinaug.com</a>
+
+    <!-- Header -->
+    <div class="header animate-in">
+      <div class="period-badge">Q1 2026 &middot; Jan 1 &ndash; Mar 19</div>
+      <h1>GitHub Activity</h1>
+      <p class="tagline">100 PRs across 17 repositories and 12 products</p>
+      <p class="intro">This quarter I focused on AI-native engineering — building evaluation frameworks, multi-model infrastructure, and intelligent content pipelines. Alongside new feature delivery across a dozen products, I drove production stability work that eliminated memory crashes, closed security gaps, and improved query performance.</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <section class="animate-in" style="animation-delay: 0.1s">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" data-target="100">0</div>
+          <div class="stat-label">PRs Authored</div>
+          <div class="stat-sub">98 merged, 2 open</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" data-target="100" data-suffix="+">0</div>
+          <div class="stat-label">PRs Reviewed</div>
+          <div class="stat-sub">cross-team</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" data-target="50">0</div>
+          <div class="stat-label">Issues Created</div>
+          <div class="stat-sub">38 closed, 12 open</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" data-target="17">0</div>
+          <div class="stat-label">Repositories</div>
+          <div class="stat-sub">12 products</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Work Themes -->
+    <section>
+      <h2 class="section-title">Work Themes</h2>
+      <div class="themes-grid" id="themes">
+        <div class="theme-card" style="border-left-color: var(--blue)">
+          <div class="theme-name">AI Platform Engineering</div>
+          <div class="theme-desc">Built RAG evaluation infrastructure, multi-turn conversation assessments, and admin tooling for an AI-powered knowledge platform.</div>
+        </div>
+        <div class="theme-card" style="border-left-color: var(--green)">
+          <div class="theme-name">Data Platform & Reporting</div>
+          <div class="theme-desc">Overhauled data exports and reporting pipelines, fixing memory issues in large-scale CSV generation and improving survey data workflows.</div>
+        </div>
+        <div class="theme-card" style="border-left-color: var(--purple)">
+          <div class="theme-name">AI Content Pipelines</div>
+          <div class="theme-desc">Developed automated content generation systems using LLMs for SEO, marketing copy, and structured data extraction across multiple products.</div>
+        </div>
+        <div class="theme-card" style="border-left-color: var(--orange)">
+          <div class="theme-name">Performance & Reliability</div>
+          <div class="theme-desc">Eliminated OOM crashes, resolved N+1 query patterns, and hardened authentication on sensitive endpoints to improve system stability.</div>
+        </div>
+        <div class="theme-card" style="border-left-color: var(--pink)">
+          <div class="theme-name">Product Development</div>
+          <div class="theme-desc">Shipped new user-facing features including coaching chatbot personas, email marketing integrations, and multi-district user support.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Highlights -->
+    <section>
+      <h2 class="section-title">Key Highlights</h2>
+
+      <div class="highlights-group">
+        <h3>AI & Intelligent Systems</h3>
+        <div class="highlight-items">
+          <div class="highlight-item"><strong>RAG evaluation pipeline</strong> — Built a full evaluation framework with test cases, automated runners, scheduled assessments, and admin UI, establishing measurable quality standards for AI responses</div>
+          <div class="highlight-item"><strong>Multi-turn evaluator</strong> — Extended evaluation beyond single Q&A to assess conversational coherence across multi-step interactions, catching regressions that single-turn tests missed</div>
+          <div class="highlight-item"><strong>Multi-provider LLM infrastructure</strong> — Decoupled the AI platform from a single LLM provider, enabling model flexibility, cost optimization, and resilience against provider outages</div>
+        </div>
+      </div>
+
+      <div class="highlights-group">
+        <h3>Production Quality</h3>
+        <div class="highlight-items">
+          <div class="highlight-item"><strong>Memory crash fixes</strong> — Rewrote CSV export pipelines to stream to disk instead of buffering in memory, eliminating out-of-memory crashes that were taking down production servers</div>
+          <div class="highlight-item"><strong>Query performance overhaul</strong> — Identified and resolved N+1 query patterns across report generation, reducing database load and preventing cascading memory failures</div>
+          <div class="highlight-item"><strong>Endpoint security hardening</strong> — Added authentication requirements to sensitive reporting and data closure endpoints, preventing unauthorized access from bots and crawlers</div>
+        </div>
+      </div>
+
+      <div class="highlights-group">
+        <h3>Feature Delivery</h3>
+        <div class="highlight-items">
+          <div class="highlight-item"><strong>Coaching chatbot persona</strong> — Created a specialized AI persona for coaching use cases, giving organizations a guided experience tailored to professional development conversations</div>
+          <div class="highlight-item"><strong>Email marketing integration</strong> — Connected lead capture to an email marketing platform with share URL support, closing the loop between product engagement and nurture campaigns</div>
+          <div class="highlight-item"><strong>Multi-district user model</strong> — Redesigned the data model to let users belong to multiple districts, a significant structural change that unblocked cross-district collaboration features</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Animated counters
+    function animateCounters() {
+      document.querySelectorAll('.stat-number[data-target]').forEach(el => {
+        const target = parseInt(el.dataset.target);
+        const suffix = el.dataset.suffix || '';
+        const duration = 1200;
+        const start = performance.now();
+
+        function update(now) {
+          const elapsed = now - start;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const current = Math.round(eased * target);
+          el.textContent = current + suffix;
+          if (progress < 1) requestAnimationFrame(update);
+        }
+        requestAnimationFrame(update);
+      });
+    }
+
+    // Fade in highlight items
+    function animateHighlights() {
+      document.querySelectorAll('.highlight-item').forEach((item, i) => {
+        setTimeout(() => {
+          item.classList.add('visible');
+        }, i * 100);
+      });
+    }
+
+    // Trigger all animations after a brief delay
+    setTimeout(() => {
+      animateCounters();
+      animateHighlights();
+    }, 300);
+  </script>
+</body>
+</html>
